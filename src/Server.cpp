@@ -1,6 +1,7 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <cstdint>
 
 
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
