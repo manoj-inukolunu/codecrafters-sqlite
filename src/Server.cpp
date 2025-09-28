@@ -2,7 +2,58 @@
 #include <iostream>
 #include <fstream>
 
-int main(int argc, char* argv[]) {
+
+static const int DATABASE_HEADER_SIZE_BYTES = 100;
+static const int CELL_OFFSET = 3;
+static const int PAGE_SIZE_OFFSET = 16;
+
+uint16_t swap(uint16_t x) {
+    return (x >> 8) | (x << 8);
+}
+
+bool little_endian() {
+    int x = 1;
+    return (*reinterpret_cast<char *>(&x) == 1);
+}
+
+int read2Bytes(std::ifstream &file, int offset) {
+    file.seekg(offset, std::ios::beg);
+    size_t n = 2;
+    uint16_t value = 0;
+    file.read(reinterpret_cast<char *>(&value), n);
+    if (little_endian()) {
+        value = swap(value);
+    }
+    file.close();
+    return value;
+}
+
+void file_reader(const std::string &file_location) {
+//    std::cout << "Reading file " << file_location << std::endl;
+    std::ifstream file(file_location, std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("Error could not open file");
+    }
+    int val = read2Bytes(file, PAGE_SIZE_OFFSET);
+    std::cout << "database page size: " << val << std::endl;
+}
+
+
+int numCellsInFirstPage(const std::string &file_location) {
+    //read file in binary mode
+    std::ifstream file(file_location, std::ios::binary);
+    if (!file.is_open()) {
+        throw std::runtime_error("File is not open , I don't know why");
+    }
+    int offset = DATABASE_HEADER_SIZE_BYTES + CELL_OFFSET;
+    int val = read2Bytes(file, offset);
+    std::cout << "number of tables: " << val << std::endl;
+
+    return val;
+}
+
+
+int main(int argc, char *argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
@@ -25,15 +76,8 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        // Uncomment this to pass the first stage
-         database_file.seekg(16);  // Skip the first 16 bytes of the header
-         
-         char buffer[2];
-         database_file.read(buffer, 2);
-        // 
-         unsigned short page_size = (static_cast<unsigned char>(buffer[1]) | (static_cast<unsigned char>(buffer[0]) << 8));
-        // 
-         std::cout << "database page size: " << page_size << std::endl;
+        file_reader(database_file_path);
+        numCellsInFirstPage(database_file_path);
     }
 
     return 0;
