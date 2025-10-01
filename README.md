@@ -5,7 +5,7 @@ This is a starting point for C++ solutions to the
 
 In this challenge, you'll build a barebones SQLite implementation that supports
 basic SQL queries like `SELECT`. Along the way we'll learn about
-[SQLite's file format](https://www.sqlite.org/fileformat.html), how indexed data
+[SQLite's dbFile format](https://www.sqlite.org/fileformat.html), how indexed data
 is
 [stored in B-trees](https://jvns.ca/blog/2014/10/02/how-does-sqlite-work-part-2-btrees/)
 and more.
