@@ -2,11 +2,19 @@
 #include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <unordered_map>
 
+#include "SqliteBTreePageReader.h"
 
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
 static const int CELL_OFFSET = 3;
 static const int PAGE_SIZE_OFFSET = 16;
+
+
+enum Command {
+    DBINFO, TABLES, INVALID
+};
+
 
 uint16_t swap(uint16_t x) {
     return (x >> 8) | (x << 8);
@@ -29,19 +37,21 @@ int read2Bytes(std::ifstream &file, int offset) {
     return value;
 }
 
-void file_reader(const std::string &file_location) {
-//    std::cout << "Reading file " << file_location << std::endl;
+int file_reader(const std::string &file_location) {
+//    std::cout << "Reading dbFile " << file_location << std::endl;
     std::ifstream file(file_location, std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("Error could not open file");
+        throw std::runtime_error("Error could not open dbFile");
     }
     int val = read2Bytes(file, PAGE_SIZE_OFFSET);
     std::cout << "database page size: " << val << std::endl;
+
+    return val;
 }
 
 
 int numCellsInFirstPage(const std::string &file_location) {
-    //read file in binary mode
+    //read dbFile in binary mode
     std::ifstream file(file_location, std::ios::binary);
     if (!file.is_open()) {
         throw std::runtime_error("File is not open , I don't know why");
@@ -54,7 +64,23 @@ int numCellsInFirstPage(const std::string &file_location) {
 }
 
 
-int main(int argc, char *argv[]) {
+int main(int args, char **argv) {
+
+    std::string location = "/Users/minukolunu/Projects/codecrafters-sqlite-cpp/sample.db";
+    int pageSize = file_reader(location);
+    std::ifstream dbFile(location, std::ios::binary);
+    SqliteBTreePageReader reader(0, pageSize, dbFile);
+
+    std::cout << reader.cellContentAreaStart <<std::endl;
+
+    std::cout << reader.readVarInt(reader.cellContentAreaStart) << std::endl;
+
+    std::cout << reader.pageType << std::endl;
+
+    reader.printCellPointers();
+}
+
+int _main(int argc, char *argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
@@ -70,16 +96,31 @@ int main(int argc, char *argv[]) {
     std::string database_file_path = argv[1];
     std::string command = argv[2];
 
-    if (command == ".dbinfo") {
-        std::ifstream database_file(database_file_path, std::ios::binary);
-        if (!database_file) {
-            std::cerr << "Failed to open the database file" << std::endl;
-            return 1;
+    std::unordered_map<std::string, Command> commandMap = {
+            {".dbinfo", DBINFO},
+            {".tables", TABLES}
+    };
+
+    Command c = commandMap.count(command) ? commandMap[command] : INVALID;
+
+    switch (c) {
+        case DBINFO: {
+            std::ifstream database_file(database_file_path, std::ios::binary);
+            if (!database_file) {
+                std::cerr << "Failed to open the database dbFile" << std::endl;
+                return 1;
+            }
+
+            file_reader(database_file_path);
+            numCellsInFirstPage(database_file_path);
+            break;
         }
+        case TABLES:
+            std::cout << "Implementing" << std::endl;
+            break;
+        default:
+            throw std::runtime_error("Fail");
 
-        file_reader(database_file_path);
-        numCellsInFirstPage(database_file_path);
     }
-
     return 0;
 }
