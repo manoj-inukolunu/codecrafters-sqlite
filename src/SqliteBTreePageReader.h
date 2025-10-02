@@ -41,7 +41,7 @@ public:
     // The database dbFile
     std::ifstream &dbFile;
 
-    uint64_t readVarInt(std::fpos<mbstate_t> offset);
+    std::pair<uint64_t, uint64_t> readVarInt(std::fpos<mbstate_t> offset);
 
     void printCellPointers();
 
@@ -65,8 +65,6 @@ private:
         int x = 1;
         return (*reinterpret_cast<char *>(&x) == 1);
     }
-
-
 
 
 };
