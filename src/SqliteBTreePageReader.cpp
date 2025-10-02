@@ -4,8 +4,10 @@
 
 #include "SqliteBTreePageReader.h"
 
+#include <format>
+#include <vector>
 
-SqliteBTreePageReader::SqliteBTreePageReader(int pageNum, int pageSize, std::ifstream &dbFile) : dbFile(dbFile),
+SqliteBTreePageReader::SqliteBTreePageReader(int pageNum, int pageSize, std::ifstream& dbFile) : dbFile(dbFile),
                                                                                                  pageNum(pageNum),
                                                                                                  pageSize(pageSize) {
     std::cout << "Reading page = " << pageNum << " with pageSize = " << pageSize << std::endl;
@@ -23,7 +25,7 @@ int SqliteBTreePageReader::read2Bytes(std::ifstream::pos_type offset) {
     dbFile.seekg(offset, std::ios::beg);
     size_t n = 2;
     uint16_t value = 0;
-    dbFile.read(reinterpret_cast<char *>(&value), n);
+    dbFile.read(reinterpret_cast<char*>(&value), n);
     if (little_endian()) {
         value = swap(value);
     }
@@ -37,33 +39,35 @@ int SqliteBTreePageReader::read1Byte(std::ifstream::pos_type offset) {
     dbFile.seekg(offset, std::ios::beg);
     size_t n = 1;
     uint16_t value = 0;
-    dbFile.read(reinterpret_cast<char *>(&value), n);
+    dbFile.read(reinterpret_cast<char*>(&value), n);
     dbFile.seekg(current, std::ios::beg);
     return value;
 }
 
 
-long SqliteBTreePageReader::readVarInt(std::ifstream::pos_type offset) {
-
+uint64_t SqliteBTreePageReader::readVarInt(std::ifstream::pos_type offset) {
     auto isMsbZero = [](int val) {
         return ((val >> 7) & 0x01) == 0;
     };
-    int count = 1, accum = read1Byte(offset);
-    if (isMsbZero(accum)) {
-        return accum;
-    }
-    offset+=1;
-    while (count <= 8) {
-        int curr = read1Byte(offset);
-        if (isMsbZero(curr)) {
-            accum = (accum << 7) | (curr << 1);
-            return accum;
-        } else {
-            accum = (accum << 7) | (curr << 1);
-            offset += 1;
+    uint64_t accum = 0;
+    uint8_t data[9];
+    int breakPoint = 0;
+    for (int i = 0; i < 9; i++) {
+        int currentByte = read1Byte(offset);
+        data[i] = (i == 8) ? currentByte : (currentByte & 0x7F);
+        breakPoint = i;
+        if (isMsbZero(currentByte)) {
+            break;
         }
-
-        count++;
+        offset += 1;
+    }
+    accum = data[0];
+    for (int i = 1; i <= breakPoint; i++) {
+        if (breakPoint == 8 && i == breakPoint) {
+            accum = accum << 8 | data[i];
+        } else {
+            accum = accum << 7 | data[i];
+        }
     }
     return accum;
 }
@@ -83,7 +87,6 @@ void SqliteBTreePageReader::printCellPointers() {
         std::cout << read2Bytes(cellPointerStart) << std::endl;
         cellPointerStart += 2;
     }
-
 }
 
 void SqliteBTreePageReader::parseHeader() {
@@ -96,25 +99,25 @@ void SqliteBTreePageReader::parseHeader() {
     int type = read1Byte(pageBegin);
     std::string pageTypeString;
     switch (type) {
-        case 2 :
-            pageType = INTERIOR_INDEX_PAGE;
-            pageTypeString = "INTERIOR_INDEX_PAGE";
-            break;
-        case 5 :
-            pageType = INTERIOR_TABLE_PAGE;
-            pageTypeString = "INTERIOR_TABLE_PAGE";
-            break;
-        case 10 :
-            pageType = LEAF_INDEX_PAGE;
-            pageTypeString = "LEAF_INDEX_PAGE";
-            break;
-        case 13 :
-            pageType = LEAF_TABLE_PAGE;
-            pageTypeString = "LEAF_TABLE_PAGE";
-            break;
-        default:
-            pageTypeString = "UNKNOWN";
-            throw std::runtime_error(std::format("Invalid page type {}", type));
+    case 2:
+        pageType = INTERIOR_INDEX_PAGE;
+        pageTypeString = "INTERIOR_INDEX_PAGE";
+        break;
+    case 5:
+        pageType = INTERIOR_TABLE_PAGE;
+        pageTypeString = "INTERIOR_TABLE_PAGE";
+        break;
+    case 10:
+        pageType = LEAF_INDEX_PAGE;
+        pageTypeString = "LEAF_INDEX_PAGE";
+        break;
+    case 13:
+        pageType = LEAF_TABLE_PAGE;
+        pageTypeString = "LEAF_TABLE_PAGE";
+        break;
+    default:
+        pageTypeString = "UNKNOWN";
+        throw std::runtime_error(std::format("Invalid page type {}", type));
     }
 
     std::cout << "BTree Page Type " << pageTypeString << std::endl;
@@ -126,6 +129,6 @@ void SqliteBTreePageReader::parseHeader() {
     this->fragmentedFreeBytesInCellContentArea = read1Byte(pageBegin.operator+(7));
 
     if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
-//        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
+        //        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
     }
 }

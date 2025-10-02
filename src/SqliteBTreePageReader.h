@@ -39,7 +39,7 @@ public:
     // The database dbFile
     std::ifstream &dbFile;
 
-    long readVarInt(std::fpos<mbstate_t> offset);
+    uint64_t readVarInt(std::fpos<mbstate_t> offset);
 
     void printCellPointers();
 
