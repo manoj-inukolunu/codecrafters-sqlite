@@ -17,7 +17,6 @@
       <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/PLACE_CATCH_ON_NEW_LINE/@EntryValue" value="false" type="bool" />
       <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SIMPLE_EMBEDDED_STATEMENT_STYLE/@EntryValue" value="LINE_BREAK" type="string" />
       <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SIMPLE_CASE_STATEMENT_STYLE/@EntryValue" value="LINE_BREAK" type="string" />
-      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/LABELED_STATEMENT_STYLE/@EntryValue" />
     </RiderCodeStyleSettings>
     <codeStyleSettings language="XML">
       <option name="RIGHT_MARGIN" value="500" />
