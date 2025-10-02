@@ -74,6 +74,8 @@ int main(int args, char** argv) {
     std::cout << reader.cellContentAreaStart << std::endl;
 
     std::cout << "VarInt " << reader.readVarInt(reader.cellContentAreaStart) << std::endl;
+
+    reader.printCellPointers();
 }
 
 int _main(int argc, char* argv[]) {
