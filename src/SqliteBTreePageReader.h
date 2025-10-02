@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <vector>
 
 enum BTreePageType {
     INTERIOR_INDEX_PAGE,
@@ -36,12 +37,15 @@ public:
     //Appears only in the header of the interior b-tree page and is omitted for all other pages
     long rightMostPointer;
 
+    std::vector<long> cellContentOffsets;
     // The database dbFile
     std::ifstream &dbFile;
 
     uint64_t readVarInt(std::fpos<mbstate_t> offset);
 
     void printCellPointers();
+
+    void readAndPrintCell(int cellNumber);
 
 
 private:
