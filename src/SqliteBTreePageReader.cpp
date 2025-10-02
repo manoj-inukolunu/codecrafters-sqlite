@@ -84,10 +84,20 @@ void SqliteBTreePageReader::printCellPointers() {
     std::cout << "Number of cells in this page " << numCellsInPage << std::endl;
     std::cout << "CellPointer starting from " << cellPointerStart << std::endl;
     for (int i = 0; i < this->numCellsInPage; i++) {
-        std::cout << read2Bytes(cellPointerStart) << std::endl;
+        cellContentOffsets.emplace_back(read2Bytes(cellPointerStart));
         cellPointerStart += 2;
     }
+
+    for (int i = 0; i < cellContentOffsets.size(); i++) {
+        std::cout << cellContentOffsets[i] << std::endl;
+    }
 }
+
+void SqliteBTreePageReader::readAndPrintCell(int cellNumber) {
+
+    readVarInt(cellContentOffsets[cellNumber]);
+}
+
 
 void SqliteBTreePageReader::parseHeader() {
     std::cout << "Parsing Header for page = " << pageNum << std::endl;
