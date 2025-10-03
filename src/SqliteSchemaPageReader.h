@@ -10,18 +10,32 @@
 #include <cstdint>
 #include <vector>
 
-enum BTreePageType {
-    INTERIOR_INDEX_PAGE,
-    INTERIOR_TABLE_PAGE,
-    LEAF_INDEX_PAGE,
-    LEAF_TABLE_PAGE
+#include "utils.h"
+
+/**
+ * Schema Page is the first page of the file
+ */
+
+
+struct SqliteBTreeCell {
+    struct RecordHeader {
+        varint headerSize;
+        std::vector<RecordColumn> recordColumns;
+    };
+
+    int cellNumber;
+    //offset is from the beginning of the file
+    FileOffset offset;
+    varint recordSize;
+    varint rowId;
+    RecordHeader record;
+    FileOffset recordBodyOffset;
 };
 
+
 class SqliteSchemaPageReader {
-
 public:
-
-    SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile);
+    SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream& dbFile);
 
     //unnecessary but just in case for clarity of the reader.
     //If pageNum == 1 then the first 100 bytes are the database dbFile header
@@ -35,32 +49,38 @@ public:
     int cellContentAreaStart;
     int fragmentedFreeBytesInCellContentArea;
     //Appears only in the header of the interior b-tree page and is omitted for all other pages
-    long rightMostPointer;
+    FileOffset rightMostPointer;
+    std::vector<SqliteBTreeCell> cells;
 
-    std::vector<long> cellContentOffsets;
+    std::vector<FileOffset> cellContentOffsets;
     // The database dbFile
-    std::ifstream &dbFile;
+    std::ifstream& dbFile;
 
-    std::pair<uint64_t, uint64_t> readVarInt(std::fpos<mbstate_t> offset);
+    std::pair<uint64_t, FileOffset> readVarInt(FileOffset offset);
 
     void printCellPointers();
 
     void readAndPrintCell(int cellNumber);
 
-    void printRecordBody();
+    void printRecordHeader();
+    void printRecordContent(FileOffset recordContentStart);
 
+    void processAllCells();
 
 private:
+    long recordContentBegin;
+    std::vector<std::pair<FileOffset, RecordColumn>> recordDataOffsets;
 
-    std::vector<std::pair<long,long>> recordDataOffsets;
+
+    void buildCell(SqliteBTreeCell& cell);
 
     void parseHeader();
 
-    int read2Bytes(std::ifstream::pos_type offset);
+    int read2Bytes(FileOffset offset);
 
-    int read1Byte(std::ifstream::pos_type offset);
+    int read1Byte(FileOffset offset);
 
-    int read4Bytes(std::ifstream::pos_type offset);
+    int read4Bytes(FileOffset offset);
 
     static uint16_t swap(uint16_t x) {
         return (x >> 8) | (x << 8);
@@ -68,10 +88,8 @@ private:
 
     static bool little_endian() {
         int x = 1;
-        return (*reinterpret_cast<char *>(&x) == 1);
+        return (*reinterpret_cast<char*>(&x) == 1);
     }
-
-
 };
 
 
