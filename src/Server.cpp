@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "SqliteBTreePageReader.h"
+#include "SqliteSchemaPageReader.h"
 
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
 static const int CELL_OFFSET = 3;
@@ -69,7 +69,7 @@ int main(int args, char **argv) {
     std::string location = argv[1] + std::string("/sample.db");
     int pageSize = file_reader(location);
     std::ifstream dbFile(location, std::ios::binary);
-    SqliteBTreePageReader reader(0, pageSize, dbFile);
+    SqliteSchemaPageReader reader(0, pageSize, dbFile);
 
     std::cout << reader.cellContentAreaStart << std::endl;
 
