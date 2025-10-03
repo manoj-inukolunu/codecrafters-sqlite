@@ -2,8 +2,8 @@
 // Created by Manoj Inukolunu on 28/09/25.
 //
 
-#ifndef SQLITE_STARTER_CPP_SQLITEBTREEPAGEREADER_H
-#define SQLITE_STARTER_CPP_SQLITEBTREEPAGEREADER_H
+#ifndef SQLITE_STARTER_CPP_SQLITESCHEMAPAGEREADER_H
+#define SQLITE_STARTER_CPP_SQLITESCHEMAPAGEREADER_H
 
 #include <iostream>
 #include <fstream>
@@ -17,11 +17,11 @@ enum BTreePageType {
     LEAF_TABLE_PAGE
 };
 
-class SqliteBTreePageReader {
+class SqliteSchemaPageReader {
 
 public:
 
-    SqliteBTreePageReader(int pageNum, int pageSize, std::ifstream &dbFile);
+    SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile);
 
     //unnecessary but just in case for clarity of the reader.
     //If pageNum == 1 then the first 100 bytes are the database dbFile header
@@ -47,8 +47,13 @@ public:
 
     void readAndPrintCell(int cellNumber);
 
+    void printRecordBody();
+
 
 private:
+
+    std::vector<std::pair<long,long>> recordDataOffsets;
+
     void parseHeader();
 
     int read2Bytes(std::ifstream::pos_type offset);
@@ -70,4 +75,4 @@ private:
 };
 
 
-#endif //SQLITE_STARTER_CPP_SQLITEBTREEPAGEREADER_H
+#endif //SQLITE_STARTER_CPP_SQLITESCHEMAPAGEREADER_H
