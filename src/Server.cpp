@@ -22,14 +22,14 @@ uint16_t swap(uint16_t x) {
 
 bool little_endian() {
     int x = 1;
-    return (*reinterpret_cast<char*>(&x) == 1);
+    return (*reinterpret_cast<char *>(&x) == 1);
 }
 
-int read2Bytes(std::ifstream& file, int offset) {
+int read2Bytes(std::ifstream &file, int offset) {
     file.seekg(offset, std::ios::beg);
     size_t n = 2;
     uint16_t value = 0;
-    file.read(reinterpret_cast<char*>(&value), n);
+    file.read(reinterpret_cast<char *>(&value), n);
     if (little_endian()) {
         value = swap(value);
     }
@@ -37,20 +37,18 @@ int read2Bytes(std::ifstream& file, int offset) {
     return value;
 }
 
-int file_reader(const std::string& file_location) {
+int file_reader(const std::string &file_location) {
     //    std::cout << "Reading dbFile " << file_location << std::endl;
     std::ifstream file(file_location, std::ios::binary);
     if (!file.is_open()) {
         throw std::runtime_error("Error could not open dbFile");
     }
     int val = read2Bytes(file, PAGE_SIZE_OFFSET);
-    std::cout << "database page size: " << val << std::endl;
-
     return val;
 }
 
 
-int numCellsInFirstPage(const std::string& file_location) {
+int numCellsInFirstPage(const std::string &file_location) {
     //read dbFile in binary mode
     std::ifstream file(file_location, std::ios::binary);
     if (!file.is_open()) {
@@ -64,7 +62,7 @@ int numCellsInFirstPage(const std::string& file_location) {
 }
 
 
-int main(int args, char** argv) {
+int _main(int args, char **argv) {
     std::cout << argv[1] << std::endl;
     std::string location = argv[1] + std::string("/sample.db");
     int pageSize = file_reader(location);
@@ -73,12 +71,9 @@ int main(int args, char** argv) {
 
     std::cout << reader.cellContentAreaStart << std::endl;
 
-    reader.printCellPointers();
-
-    reader.readAndPrintCell(2);
 }
 
-int _main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
@@ -95,29 +90,33 @@ int _main(int argc, char* argv[]) {
     std::string command = argv[2];
 
     std::unordered_map<std::string, Command> commandMap = {
-        {".dbinfo", DBINFO},
-        {".tables", TABLES}
+            {".dbinfo", DBINFO},
+            {".tables", TABLES}
     };
 
     Command c = commandMap.count(command) ? commandMap[command] : INVALID;
 
     switch (c) {
-    case DBINFO: {
-        std::ifstream database_file(database_file_path, std::ios::binary);
-        if (!database_file) {
-            std::cerr << "Failed to open the database dbFile" << std::endl;
-            return 1;
-        }
+        case DBINFO: {
+            std::ifstream database_file(database_file_path, std::ios::binary);
+            if (!database_file) {
+                std::cerr << "Failed to open the database dbFile" << std::endl;
+                return 1;
+            }
 
-        file_reader(database_file_path);
-        numCellsInFirstPage(database_file_path);
-        break;
-    }
-    case TABLES:
-        std::cout << "Implementing" << std::endl;
-        break;
-    default:
-        throw std::runtime_error("Fail");
+            file_reader(database_file_path);
+            numCellsInFirstPage(database_file_path);
+            break;
+        }
+        case TABLES: {
+            int pageSize = file_reader(database_file_path);
+            std::ifstream dbFile(database_file_path, std::ios::binary);
+            SqliteSchemaPageReader reader(1, pageSize, dbFile);
+            reader.printTableNames();
+            break;
+        }
+        default:
+            throw std::runtime_error("Fail");
     }
     return 0;
 }
