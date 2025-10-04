@@ -10,4 +10,8 @@ add_executable(exe ${SOURCE_FILES}
         src/SqliteSchemaPageReader.cpp
         src/SqliteSchemaPageReader.h
         src/utils.h
+        src/SqlitePageReader.cpp
+        src/SqlitePageReader.h
+        src/SqliteUtils.cpp
+        src/SqliteUtils.h
 )

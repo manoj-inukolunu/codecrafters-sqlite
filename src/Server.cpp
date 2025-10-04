@@ -16,14 +16,6 @@ enum Command {
 };
 
 
-uint16_t swap(uint16_t x) {
-    return (x >> 8) | (x << 8);
-}
-
-bool little_endian() {
-    int x = 1;
-    return (*reinterpret_cast<char *>(&x) == 1);
-}
 
 int read2Bytes(std::ifstream &file, int offset) {
     file.seekg(offset, std::ios::beg);
