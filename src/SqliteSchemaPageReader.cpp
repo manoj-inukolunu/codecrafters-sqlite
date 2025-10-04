@@ -23,59 +23,6 @@ SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::i
 }
 
 
-int SqliteSchemaPageReader::read2Bytes(FileOffset offset) {
-    FileOffset current = dbFile.tellg();
-    dbFile.seekg(offset, std::ios::beg);
-    size_t n = 2;
-    uint16_t value = 0;
-    dbFile.read(reinterpret_cast<char *>(&value), n);
-    if (little_endian()) {
-        value = swap(value);
-    }
-    dbFile.seekg(current, std::ios::beg);
-    return value;
-}
-
-
-int SqliteSchemaPageReader::read1Byte(FileOffset offset) {
-    FileOffset current = dbFile.tellg();
-    dbFile.seekg(offset, std::ios::beg);
-    size_t n = 1;
-    uint16_t value = 0;
-    dbFile.read(reinterpret_cast<char *>(&value), n);
-    dbFile.seekg(current, std::ios::beg);
-    return value;
-}
-
-
-std::pair<uint64_t, FileOffset> SqliteSchemaPageReader::readVarInt(FileOffset offset) {
-    auto isMsbZero = [](int val) {
-        return ((val >> 7) & 0x01) == 0;
-    };
-    uint64_t accum = 0;
-    uint8_t data[9];
-    int breakPoint = 0;
-    for (int i = 0; i < 9; i++) {
-        int currentByte = read1Byte(offset);
-        data[i] = (i == 8) ? currentByte : (currentByte & 0x7F);
-        breakPoint = i;
-        offset += 1;
-        if (isMsbZero(currentByte)) {
-            break;
-        }
-    }
-    accum = data[0];
-    for (int i = 1; i <= breakPoint; i++) {
-        if (breakPoint == 8 && i == breakPoint) {
-            accum = accum << 8 | data[i];
-        } else {
-            accum = accum << 7 | data[i];
-        }
-    }
-    return std::make_pair(accum, offset);
-}
-
-
 void SqliteSchemaPageReader::processCellPointers() {
     int pageHeaderSize = (this->pageType == LEAF_TABLE_PAGE || this->pageType == LEAF_INDEX_PAGE) ? 8 : 12;
 
@@ -85,7 +32,7 @@ void SqliteSchemaPageReader::processCellPointers() {
     }
     for (int i = 0; i < this->numCellsInPage; i++) {
         SqliteBTreeSchemaCell cell;
-        cell.offset = read2Bytes(cellPointerStart);
+        cell.offset = read2Bytes(cellPointerStart, dbFile);
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;
@@ -95,19 +42,19 @@ void SqliteSchemaPageReader::processCellPointers() {
 }
 
 void SqliteSchemaPageReader::buildCell(SqliteBTreeSchemaCell &cell) {
-    auto sizeOfRecord = readVarInt(cellContentOffsets[cell.cellNumber]);
+    auto sizeOfRecord = readVarInt(cellContentOffsets[cell.cellNumber], dbFile);
     cell.recordSize = sizeOfRecord.first;
-    auto rowId = readVarInt(sizeOfRecord.second);
+    auto rowId = readVarInt(sizeOfRecord.second, dbFile);
     cell.rowId = rowId.first;
     SqliteBTreeSchemaCell::RecordHeader recordHeader;
-    auto recordHeaderSize = readVarInt(rowId.second);
+    auto recordHeaderSize = readVarInt(rowId.second, dbFile);
     recordHeader.headerSize = recordHeaderSize.first;
 
     FileOffset columnOffSet = recordHeaderSize.second;
     std::vector<RecordColumn> columns;
     long totalsize = recordHeader.headerSize;
     while (totalsize < cell.recordSize) {
-        std::pair<uint64_t, FileOffset> payload = readVarInt(columnOffSet);
+        std::pair<uint64_t, FileOffset> payload = readVarInt(columnOffSet, dbFile);
         RecordColumn c{};
         c.contentSize = contentSize(payload.first);
         totalsize += c.contentSize;
@@ -164,7 +111,7 @@ void SqliteSchemaPageReader::parseHeader() {
         pageBegin += 100;
     }
     // Read page type
-    int type = read1Byte(pageBegin);
+    int type = read1Byte(pageBegin, dbFile);
     std::string pageTypeString;
     switch (type) {
         case 2:
@@ -189,10 +136,10 @@ void SqliteSchemaPageReader::parseHeader() {
 
     //Read start first free block
 
-    this->firstFreeBlockStart = read2Bytes(pageBegin + 1);
-    this->numCellsInPage = read2Bytes(pageBegin + (3));
-    this->cellContentAreaStart = read2Bytes(pageBegin + (5));
-    this->fragmentedFreeBytesInCellContentArea = read1Byte(pageBegin + (7));
+    this->firstFreeBlockStart = read2Bytes(pageBegin + 1, dbFile);
+    this->numCellsInPage = read2Bytes(pageBegin + (3), dbFile);
+    this->cellContentAreaStart = read2Bytes(pageBegin + (5), dbFile);
+    this->fragmentedFreeBytesInCellContentArea = read1Byte(pageBegin + (7), dbFile);
 
     if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
         //        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
