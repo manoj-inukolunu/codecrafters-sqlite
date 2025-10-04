@@ -9,12 +9,13 @@
 #include <vector>
 
 
-SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream& dbFile) : dbFile(dbFile),
+SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile) : dbFile(dbFile),
                                                                                                    pageNum(pageNum),
                                                                                                    pageSize(pageSize) {
-    std::cout << "Reading page = " << pageNum << " with pageSize = " << pageSize << std::endl;
+    if (pageNum == 0) {
+        throw std::runtime_error("Invalid Page Number 0");
+    }
     if (pageNum == 1) {
-        std::cout << "This is the first page There is a 100 byte header for this page" << std::endl;
         this->parseHeader();
     } else {
         this->parseHeader();
@@ -27,7 +28,7 @@ int SqliteSchemaPageReader::read2Bytes(FileOffset offset) {
     dbFile.seekg(offset, std::ios::beg);
     size_t n = 2;
     uint16_t value = 0;
-    dbFile.read(reinterpret_cast<char*>(&value), n);
+    dbFile.read(reinterpret_cast<char *>(&value), n);
     if (little_endian()) {
         value = swap(value);
     }
@@ -41,7 +42,7 @@ int SqliteSchemaPageReader::read1Byte(FileOffset offset) {
     dbFile.seekg(offset, std::ios::beg);
     size_t n = 1;
     uint16_t value = 0;
-    dbFile.read(reinterpret_cast<char*>(&value), n);
+    dbFile.read(reinterpret_cast<char *>(&value), n);
     dbFile.seekg(current, std::ios::beg);
     return value;
 }
@@ -75,153 +76,117 @@ std::pair<uint64_t, FileOffset> SqliteSchemaPageReader::readVarInt(FileOffset of
 }
 
 
-void SqliteSchemaPageReader::printCellPointers() {
-    std::cout << "Cell Content starting at " << this->cellContentAreaStart << std::endl;
+void SqliteSchemaPageReader::processCellPointers() {
     int pageHeaderSize = (this->pageType == LEAF_TABLE_PAGE || this->pageType == LEAF_INDEX_PAGE) ? 8 : 12;
 
-    auto cellPointerStart = std::ifstream::pos_type(pageNum * pageSize).operator+(pageHeaderSize);
-    if (pageNum == 0) {
+    auto cellPointerStart = std::ifstream::pos_type((pageNum - 1) * pageSize).operator+(pageHeaderSize);
+    if (pageNum == 1) {
         cellPointerStart += 100;
     }
-    std::cout << "Number of cells in this page " << numCellsInPage << std::endl;
-    std::cout << "CellPointer starting from " << cellPointerStart << std::endl;
     for (int i = 0; i < this->numCellsInPage; i++) {
-        SqliteBTreeCell cell;
+        SqliteBTreeSchemaCell cell;
         cell.offset = read2Bytes(cellPointerStart);
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;
         cells.emplace_back(cell);
     }
-
-    for (int i = 0; i < cellContentOffsets.size(); i++) {
-        std::cout << cellContentOffsets[i] << std::endl;
-    }
     processAllCells();
 }
 
-void SqliteSchemaPageReader::buildCell(SqliteBTreeCell& cell) {
+void SqliteSchemaPageReader::buildCell(SqliteBTreeSchemaCell &cell) {
     auto sizeOfRecord = readVarInt(cellContentOffsets[cell.cellNumber]);
     cell.recordSize = sizeOfRecord.first;
     auto rowId = readVarInt(sizeOfRecord.second);
     cell.rowId = rowId.first;
-    SqliteBTreeCell::RecordHeader recordHeader;
+    SqliteBTreeSchemaCell::RecordHeader recordHeader;
     auto recordHeaderSize = readVarInt(rowId.second);
     recordHeader.headerSize = recordHeaderSize.first;
 
     FileOffset columnOffSet = recordHeaderSize.second;
     std::vector<RecordColumn> columns;
-    for (int i = 1; i < recordHeader.headerSize; i++) {
-        std::pair<uint64_t, uint64_t> payload = readVarInt(columnOffSet);
-        RecordColumn c;
+    long totalsize = recordHeader.headerSize;
+    while (totalsize < cell.recordSize) {
+        std::pair<uint64_t, FileOffset> payload = readVarInt(columnOffSet);
+        RecordColumn c{};
         c.contentSize = contentSize(payload.first);
+        totalsize += c.contentSize;
         c.serialType = payload.first;
         c.type = dataType(payload.first);
+        c.numBits = numBits(c.serialType);
         columns.emplace_back(c);
         columnOffSet = payload.second;
     }
+    cell.recordBodyOffset = columnOffSet;
     cell.record.recordColumns = std::move(columns);
+
+    assert(totalsize == sizeOfRecord.first);
+    buildCellBody(cell);
 }
 
-
-void SqliteSchemaPageReader::readAndPrintCell(int cellNumber) {
-    std::cout << "Printing Cell " << cellNumber << std::endl;
-    SqliteBTreeCell cell = cells[cellNumber];
-    std::cout << "Cell Offset " << cell.offset << std::endl;
-    std::cout << "Cell Record Size " << cell.recordSize << std::endl;
-    std::cout << "Cell Row Id " << cell.rowId << std::endl;
-    std::cout << "Cell Record Body Offset " << cell.recordBodyOffset << std::endl;
-
-    std::cout << "Cell Record header size " << cell.record.headerSize << std::endl;
-
-    for (int i = 0; i < cell.record.recordColumns.size(); i++) {
-        RecordColumn recordColumn = cell.record.recordColumns[i];
-        std::cout << "Cell Record Column " << dataTypeStr(recordColumn.type) << std::endl;
-        std::cout << " Content Size " << recordColumn.contentSize << std::endl;
-    };
-
-
-    auto header = readVarInt(cellContentOffsets[cellNumber]);
-    auto rowId = readVarInt(header.second);
-    auto recordHeader = readVarInt(rowId.second);
-    FileOffset offset = rowId.second;
-    for (int i = 1; i < recordHeader.first; i++) {
-        std::pair<uint64_t, uint64_t> payload = readVarInt(offset);
-        RecordColumn c;
-        c.contentSize = contentSize(payload.first);
-        c.serialType = payload.first;
-        c.type = dataType(payload.first);
-        recordDataOffsets.emplace_back(std::make_pair(payload.second, c));
-        offset = payload.second;
-    }
-}
-
-
-void SqliteSchemaPageReader::printRecordHeader() {
-    // first value is size of the header itself , we don't care about that
-    for (int i = 1; i < this->recordDataOffsets.size(); i++) {
-        RecordColumn c = recordDataOffsets[i].second;
-        std::cout << "Data Type " << dataTypeStr(c.type) << " Data Size " << c.contentSize << std::endl;
+void SqliteSchemaPageReader::buildCellBody(SqliteBTreeSchemaCell &cell) {
+    FileOffset offset = cell.recordBodyOffset;
+    for (auto &recordColumn: cell.record.recordColumns) {
+        switch (recordColumn.type) {
+            case TEXT: {
+                std::unique_ptr<char[]> buffer(new char[recordColumn.contentSize]());
+                dbFile.seekg(offset, std::ios::beg);
+                dbFile.read(buffer.get(), recordColumn.contentSize);
+                // Construct string from raw bytes
+                std::string result(buffer.get(), recordColumn.contentSize);
+                recordColumn.content.assign(buffer.get(), recordColumn.contentSize);
+                break;
+            }
+            case INT: {
+                dbFile.seekg(offset, std::ios::beg);
+                int64_t value = 0;
+                dbFile.read(reinterpret_cast<char *>(&value), recordColumn.numBits);
+                recordColumn.value = value;
+                break;
+            }
+            default:
+                throw std::runtime_error("Invalid type ");
+        }
+        offset += recordColumn.contentSize;
     }
 }
 
 void SqliteSchemaPageReader::processAllCells() {
-    for (int i = 0; i < numCellsInPage; i++) {
+    for (int i = numCellsInPage - 1; i >= 0; i--) {
         buildCell(cells[i]);
     }
 }
 
 
-void SqliteSchemaPageReader::printRecordContent(FileOffset recordContentStart) {
-    for (int i = 0; i < recordDataOffsets.size(); i++) {
-        RecordColumn c = recordDataOffsets[i].second;
-        switch (c.type) {
-        case TEXT: {
-            std::string buffer(c.contentSize, '\0');
-            dbFile.seekg(recordContentStart, std::ios::beg);
-            dbFile.read(&buffer[0], c.contentSize);
-            std::cout << buffer << std::endl;
-            break;
-        }
-        default:
-            throw std::invalid_argument("Not Implemented");
-        }
-        std::cout << recordDataOffsets[i].first << std::endl;
-    }
-}
-
-
 void SqliteSchemaPageReader::parseHeader() {
-    std::cout << "Parsing Header for page = " << pageNum << std::endl;
-    auto pageBegin = FileOffset(pageNum * pageSize);
-    if (pageNum == 0) {
+    auto pageBegin = FileOffset((pageNum - 1) * pageSize);
+    if (pageNum == 1) {
         pageBegin += 100;
     }
     // Read page type
     int type = read1Byte(pageBegin);
     std::string pageTypeString;
     switch (type) {
-    case 2:
-        pageType = INTERIOR_INDEX_PAGE;
-        pageTypeString = "INTERIOR_INDEX_PAGE";
-        break;
-    case 5:
-        pageType = INTERIOR_TABLE_PAGE;
-        pageTypeString = "INTERIOR_TABLE_PAGE";
-        break;
-    case 10:
-        pageType = LEAF_INDEX_PAGE;
-        pageTypeString = "LEAF_INDEX_PAGE";
-        break;
-    case 13:
-        pageType = LEAF_TABLE_PAGE;
-        pageTypeString = "LEAF_TABLE_PAGE";
-        break;
-    default:
-        throw std::runtime_error(std::format("Invalid page type {}", type));
+        case 2:
+            pageType = INTERIOR_INDEX_PAGE;
+            pageTypeString = "INTERIOR_INDEX_PAGE";
+            break;
+        case 5:
+            pageType = INTERIOR_TABLE_PAGE;
+            pageTypeString = "INTERIOR_TABLE_PAGE";
+            break;
+        case 10:
+            pageType = LEAF_INDEX_PAGE;
+            pageTypeString = "LEAF_INDEX_PAGE";
+            break;
+        case 13:
+            pageType = LEAF_TABLE_PAGE;
+            pageTypeString = "LEAF_TABLE_PAGE";
+            break;
+        default:
+            throw std::runtime_error(std::format("Invalid page type {}", type));
     }
 
-    std::cout << "BTree Page Type " << pageTypeString << std::endl;
     //Read start first free block
 
     this->firstFreeBlockStart = read2Bytes(pageBegin + 1);
@@ -232,4 +197,61 @@ void SqliteSchemaPageReader::parseHeader() {
     if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
         //        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
     }
+
+
+    processCellPointers();
+    buildSqliteSchemaTable();
 }
+
+std::string anyToString(const std::any &a) {
+    if (!a.has_value()) return "null";
+
+    if (a.type() == typeid(std::string))
+        return std::any_cast<std::string>(a);
+    else if (a.type() == typeid(const char *))
+        return std::string(std::any_cast<const char *>(a));
+    else if (a.type() == typeid(char *))
+        return std::string(std::any_cast<char *>(a));
+    else if (a.type() == typeid(int))
+        return std::to_string(std::any_cast<int>(a));
+    else if (a.type() == typeid(double))
+        return std::to_string(std::any_cast<double>(a));
+    else if (a.type() == typeid(float))
+        return std::to_string(std::any_cast<float>(a));
+    else if (a.type() == typeid(bool))
+        return std::any_cast<bool>(a) ? "true" : "false";
+    else {
+        // fallback: show the type name
+        return std::string("<unhandled type: ") + a.type().name() + ">";
+    }
+}
+
+/*
+ * Sqlite Schema table is constant with the following format
+ * https://www.sqlite.org/schematab.html
+ * https://www.sqlite.org/fileformat.html#ffschema
+ */
+void SqliteSchemaPageReader::buildSqliteSchemaTable() {
+    const char *arr[] = {"type", "name", "tbl_name", "rootpage", "sql"};
+    for (int colIdx = 0; colIdx < 5; colIdx++) {
+        for (auto &cell: cells) {
+            cell.schema[arr[colIdx]] = cell.record.recordColumns[colIdx].content;
+        }
+    }
+
+
+}
+
+void SqliteSchemaPageReader::printTableNames() {
+    for (SqliteBTreeSchemaCell cell: cells) {
+        for (const auto &pair: cell.schema) {
+            if (pair.first == "type" && anyToString(pair.second) == "table" &&
+                !anyToString(cell.schema["tbl_name"]).starts_with("sqlite")) {
+                std::cout << anyToString(cell.schema["tbl_name"]) << " ";
+            }
+        }
+    }
+
+}
+
+

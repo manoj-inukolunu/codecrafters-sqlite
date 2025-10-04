@@ -4,6 +4,7 @@
 
 #ifndef SQLITE_STARTER_CPP_TYPES_H
 #define SQLITE_STARTER_CPP_TYPES_H
+
 #include <fstream>
 
 #endif //SQLITE_STARTER_CPP_TYPES_H
@@ -29,18 +30,18 @@ enum DataType {
     NULL_TYPE
 };
 
-inline const char* dataTypeStr(DataType type) {
+inline const char *dataTypeStr(DataType type) {
     switch (type) {
-    case INT:
-        return "INT";
-    case REAL:
-        return "REAL";
-    case TEXT:
-        return "TEXT";
-    case BLOB:
-        return "BLOB";
-    case NULL_TYPE:
-        return "NULL_TYPE";
+        case INT:
+            return "INT";
+        case REAL:
+            return "REAL";
+        case TEXT:
+            return "TEXT";
+        case BLOB:
+            return "BLOB";
+        case NULL_TYPE:
+            return "NULL_TYPE";
     }
     throw new std::invalid_argument("Invalid data type");
 }
@@ -49,6 +50,9 @@ struct RecordColumn {
     varint serialType;
     long contentSize;
     DataType type;
+    uint8_t numBits;
+    std::string content;
+    int64_t value;
 };
 
 
@@ -83,4 +87,9 @@ inline DataType dataType(varint serialType) {
         return TEXT;
     }
     throw std::runtime_error("This type is not supported in a live database file");
+}
+
+inline uint8_t numBits(varint serialType) {
+    int array[] = {0, 1, 2, 3, 4, 6, 8, 8, 0, 0, -1, -1, -1, -1};
+    return array[serialType];
 }

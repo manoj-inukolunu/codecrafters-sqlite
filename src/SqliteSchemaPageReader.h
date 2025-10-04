@@ -11,31 +11,38 @@
 #include <vector>
 
 #include "utils.h"
+#include <cassert>
+#include <map>
+#include <any>
+
 
 /**
  * Schema Page is the first page of the file
  */
 
 
-struct SqliteBTreeCell {
+
+
+struct SqliteBTreeSchemaCell {
     struct RecordHeader {
         varint headerSize;
         std::vector<RecordColumn> recordColumns;
     };
 
-    int cellNumber;
+    int cellNumber{};
     //offset is from the beginning of the file
-    FileOffset offset;
-    varint recordSize;
-    varint rowId;
+    FileOffset offset{};
+    varint recordSize{};
+    varint rowId{};
     RecordHeader record;
-    FileOffset recordBodyOffset;
+    std::map<std::string, std::any> schema;
+    FileOffset recordBodyOffset{};
 };
 
 
 class SqliteSchemaPageReader {
 public:
-    SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream& dbFile);
+    SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile);
 
     //unnecessary but just in case for clarity of the reader.
     //If pageNum == 1 then the first 100 bytes are the database dbFile header
@@ -50,29 +57,32 @@ public:
     int fragmentedFreeBytesInCellContentArea;
     //Appears only in the header of the interior b-tree page and is omitted for all other pages
     FileOffset rightMostPointer;
-    std::vector<SqliteBTreeCell> cells;
+    std::vector<SqliteBTreeSchemaCell> cells;
 
     std::vector<FileOffset> cellContentOffsets;
     // The database dbFile
-    std::ifstream& dbFile;
+    std::ifstream &dbFile;
 
     std::pair<uint64_t, FileOffset> readVarInt(FileOffset offset);
 
-    void printCellPointers();
+    void processCellPointers();
 
-    void readAndPrintCell(int cellNumber);
-
-    void printRecordHeader();
-    void printRecordContent(FileOffset recordContentStart);
 
     void processAllCells();
 
+    void printTableNames();
+
 private:
-    long recordContentBegin;
+
+    std::vector<std::string> tableNames;
     std::vector<std::pair<FileOffset, RecordColumn>> recordDataOffsets;
 
 
-    void buildCell(SqliteBTreeCell& cell);
+    void buildCellBody(SqliteBTreeSchemaCell &cell);
+
+    void buildCell(SqliteBTreeSchemaCell &cell);
+
+    void buildSqliteSchemaTable();
 
     void parseHeader();
 
@@ -80,7 +90,6 @@ private:
 
     int read1Byte(FileOffset offset);
 
-    int read4Bytes(FileOffset offset);
 
     static uint16_t swap(uint16_t x) {
         return (x >> 8) | (x << 8);
@@ -88,7 +97,7 @@ private:
 
     static bool little_endian() {
         int x = 1;
-        return (*reinterpret_cast<char*>(&x) == 1);
+        return (*reinterpret_cast<char *>(&x) == 1);
     }
 };
 
