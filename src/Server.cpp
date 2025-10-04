@@ -104,7 +104,8 @@ int main(int argc, char *argv[]) {
                 return 1;
             }
 
-            file_reader(database_file_path);
+            int val = file_reader(database_file_path);
+            std::cout << "database page size: " << val << std::endl;
             numCellsInFirstPage(database_file_path);
             break;
         }
