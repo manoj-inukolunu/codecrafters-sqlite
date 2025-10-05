@@ -5,7 +5,7 @@ project(sqlite-starter-cpp)
 set(CMAKE_CXX_STANDARD 23) # Enable the C++23 standard
 
 
-add_subdirectory(third_party/antlr4/runtime/Cpp ${CMAKE_BINARY_DIR}/antlr4_runtime)
+add_subdirectory(third_party/antlr4_runtime ${CMAKE_BINARY_DIR}/antlr4_runtime)
 set(ANTLR4_RUNTIME_TARGET antlr4_static)
 
 set(GENERATED
