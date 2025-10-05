@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 23) # Enable the C++23 standard
 #[[add_subdirectory(third_party/antlr4_runtime ${CMAKE_BINARY_DIR}/antlr4_runtime)
 set(ANTLR4_RUNTIME_TARGET antlr4_static)]]
 
-find_package(antlr4-cpp CONFIG REQUIRED)
+find_package(antlr4  CONFIG REQUIRED)
 
 
 set(GENERATED
