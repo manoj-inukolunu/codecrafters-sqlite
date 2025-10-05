@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD 23) # Enable the C++23 standard
 
 
 #[[add_subdirectory(third_party/antlr4_runtime ${CMAKE_BINARY_DIR}/antlr4_runtime)
-set(ANTLR4_RUNTIME_TARGET antlr4_static)]]
+set(ANTLR4_RUNTIME_TARGET antlr4`1_static)]]
 
-find_package(antlr4  CONFIG REQUIRED)
+#find_package(antlr4  CONFIG REQUIRED)
 
 
 set(GENERATED
@@ -22,7 +22,7 @@ set(GENERATED
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.hpp)
 
-include_directories(thrid_party/include/antlr4-runtime)
+include_directories(third_party/antlr4-runtime)
 include_directories(src/gen_sqlite/)
 add_library(sqlite_grammar
         src/gen_sqlite/SQLiteLexer.cpp
@@ -30,8 +30,10 @@ add_library(sqlite_grammar
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
 )
+set(ANTLR_LIB "${CMAKE_SOURCE_DIR}/third_party/libantlr4-runtime.a")
+
 target_include_directories(sqlite_grammar PUBLIC gen_sqlite)
-target_link_libraries(sqlite_grammar PUBLIC ${ANTLR4_RUNTIME_TARGET})
+target_link_libraries(sqlite_grammar PUBLIC ${ANTLR_LIB})
 
 
 add_executable(exe ${SOURCE_FILES} ${GENERATED}
@@ -49,5 +51,9 @@ add_executable(exe ${SOURCE_FILES} ${GENERATED}
         src/sqlite_main.cpp
 )
 
+
 target_include_directories(exe PRIVATE gen_sqlite)
-target_link_libraries(exe PRIVATE sqlite_grammar ${ANTLR4_RUNTIME_TARGET})
+target_link_libraries(exe PRIVATE sqlite_grammar ${ANTLR_LIB})
+
+
+
