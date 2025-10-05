@@ -216,7 +216,7 @@ void SqliteSchemaPageReader::printTableNames() {
             //            std::cout << anyToString(cell.schema["rootpage"]) << std::endl;
             if (pair.first == "type" && anyToString(pair.second) == "table" &&
                 !anyToString(cell.schema["tbl_name"]).starts_with("sqlite")) {
-                std::cout << anyToString(cell.schema["tbl_name"]) << " " << anyToString(cell.schema["rootpage"]) << " ";
+                std::cout << anyToString(cell.schema["tbl_name"]) << " ";
             }
         }
     }
