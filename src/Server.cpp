@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
                                    return x.tableName == tableName;
                                });
 
-        SqliteSchemaPageReader rootPageReader(2, pageSize, dbFile);
+        SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
 
         std::cout << "Number of rows " << rootPageReader.numCellsInPage << std::endl;
     }
