@@ -9,7 +9,7 @@
 #include <vector>
 
 
-SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile) : dbFile(dbFile),
+SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream& dbFile) : dbFile(dbFile),
                                                                                                    pageNum(pageNum),
                                                                                                    pageSize(pageSize) {
     if (pageNum == 0) {
@@ -41,7 +41,7 @@ void SqliteSchemaPageReader::processCellPointers() {
     processAllCells();
 }
 
-void SqliteSchemaPageReader::buildCell(SqliteBTreeSchemaCell &cell) {
+void SqliteSchemaPageReader::buildCell(SqliteBTreeSchemaCell& cell) {
     auto sizeOfRecord = readVarInt(cellContentOffsets[cell.cellNumber], dbFile);
     cell.recordSize = sizeOfRecord.first;
     auto rowId = readVarInt(sizeOfRecord.second, dbFile);
@@ -71,28 +71,28 @@ void SqliteSchemaPageReader::buildCell(SqliteBTreeSchemaCell &cell) {
     buildCellBody(cell);
 }
 
-void SqliteSchemaPageReader::buildCellBody(SqliteBTreeSchemaCell &cell) {
+void SqliteSchemaPageReader::buildCellBody(SqliteBTreeSchemaCell& cell) {
     FileOffset offset = cell.recordBodyOffset;
-    for (auto &recordColumn: cell.record.recordColumns) {
+    for (auto& recordColumn : cell.record.recordColumns) {
         switch (recordColumn.type) {
-            case TEXT: {
-                std::unique_ptr<char[]> buffer(new char[recordColumn.contentSize]());
-                dbFile.seekg(offset, std::ios::beg);
-                dbFile.read(buffer.get(), recordColumn.contentSize);
-                // Construct string from raw bytes
-                std::string result(buffer.get(), recordColumn.contentSize);
-                recordColumn.content.assign(buffer.get(), recordColumn.contentSize);
-                break;
-            }
-            case INT: {
-                dbFile.seekg(offset, std::ios::beg);
-                int64_t value = 0;
-                dbFile.read(reinterpret_cast<char *>(&value), recordColumn.numBits);
-                recordColumn.value = value;
-                break;
-            }
-            default:
-                throw std::runtime_error("Invalid type ");
+        case TEXT: {
+            std::unique_ptr<char[]> buffer(new char[recordColumn.contentSize]());
+            dbFile.seekg(offset, std::ios::beg);
+            dbFile.read(buffer.get(), recordColumn.contentSize);
+            // Construct string from raw bytes
+            std::string result(buffer.get(), recordColumn.contentSize);
+            recordColumn.content.assign(buffer.get(), recordColumn.contentSize);
+            break;
+        }
+        case INT: {
+            dbFile.seekg(offset, std::ios::beg);
+            int64_t value = 0;
+            dbFile.read(reinterpret_cast<char*>(&value), recordColumn.numBits);
+            recordColumn.value = value;
+            break;
+        }
+        default:
+            throw std::runtime_error("Invalid type ");
         }
         offset += recordColumn.contentSize;
     }
@@ -114,24 +114,24 @@ void SqliteSchemaPageReader::parseHeader() {
     int type = read1Byte(pageBegin, dbFile);
     std::string pageTypeString;
     switch (type) {
-        case 2:
-            pageType = INTERIOR_INDEX_PAGE;
-            pageTypeString = "INTERIOR_INDEX_PAGE";
-            break;
-        case 5:
-            pageType = INTERIOR_TABLE_PAGE;
-            pageTypeString = "INTERIOR_TABLE_PAGE";
-            break;
-        case 10:
-            pageType = LEAF_INDEX_PAGE;
-            pageTypeString = "LEAF_INDEX_PAGE";
-            break;
-        case 13:
-            pageType = LEAF_TABLE_PAGE;
-            pageTypeString = "LEAF_TABLE_PAGE";
-            break;
-        default:
-            throw std::runtime_error(std::format("Invalid page type {}", type));
+    case 2:
+        pageType = INTERIOR_INDEX_PAGE;
+        pageTypeString = "INTERIOR_INDEX_PAGE";
+        break;
+    case 5:
+        pageType = INTERIOR_TABLE_PAGE;
+        pageTypeString = "INTERIOR_TABLE_PAGE";
+        break;
+    case 10:
+        pageType = LEAF_INDEX_PAGE;
+        pageTypeString = "LEAF_INDEX_PAGE";
+        break;
+    case 13:
+        pageType = LEAF_TABLE_PAGE;
+        pageTypeString = "LEAF_TABLE_PAGE";
+        break;
+    default:
+        throw std::runtime_error(std::format("Invalid page type {}", type));
     }
 
     //Read start first free block
@@ -145,20 +145,22 @@ void SqliteSchemaPageReader::parseHeader() {
         //        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
     }
 
-
-    processCellPointers();
-    buildSqliteSchemaTable();
+    if (pageNum == 1) {
+        processCellPointers();
+        buildSqliteSchemaTable();
+    }
 }
 
-std::string anyToString(const std::any &a) {
-    if (!a.has_value()) return "null";
+std::string anyToString(const std::any& a) {
+    if (!a.has_value())
+        return "null";
 
     if (a.type() == typeid(std::string))
         return std::any_cast<std::string>(a);
-    else if (a.type() == typeid(const char *))
-        return std::string(std::any_cast<const char *>(a));
-    else if (a.type() == typeid(char *))
-        return std::string(std::any_cast<char *>(a));
+    else if (a.type() == typeid(const char*))
+        return std::string(std::any_cast<const char*>(a));
+    else if (a.type() == typeid(char*))
+        return std::string(std::any_cast<char*>(a));
     else if (a.type() == typeid(int64_t))
         return std::to_string(std::any_cast<int64_t>(a));
     else if (a.type() == typeid(double))
@@ -179,9 +181,9 @@ std::string anyToString(const std::any &a) {
  * https://www.sqlite.org/fileformat.html#ffschema
  */
 void SqliteSchemaPageReader::buildSqliteSchemaTable() {
-    const char *arr[] = {"type", "name", "tbl_name", "rootpage", "sql"};
+    const char* arr[] = {"type", "name", "tbl_name", "rootpage", "sql"};
     for (int colIdx = 0; colIdx < 5; colIdx++) {
-        for (auto &cell: cells) {
+        for (auto& cell : cells) {
             cell.schema[arr[colIdx]] = cell.record.recordColumns[colIdx].content;
             if (colIdx == 3) {
                 cell.schema[arr[colIdx]] = cell.record.recordColumns[colIdx].value;
@@ -191,7 +193,7 @@ void SqliteSchemaPageReader::buildSqliteSchemaTable() {
 }
 
 void SqliteSchemaPageReader::buildSchemaTableRows() {
-    for (SqliteBTreeSchemaCell cell: cells) {
+    for (SqliteBTreeSchemaCell cell : cells) {
         SqliteSchemaTables page;
         page.type = anyToString(cell.schema["type"]);
         page.name = anyToString(cell.schema["name"]);
@@ -203,22 +205,19 @@ void SqliteSchemaPageReader::buildSchemaTableRows() {
         tables.emplace_back(page);
     }
 
-    for (auto table: tables) {
+    /*for (auto table: tables) {
         table.toString();
-    }
+    }*/
 }
 
 void SqliteSchemaPageReader::printTableNames() {
-    for (SqliteBTreeSchemaCell cell: cells) {
-        for (const auto &pair: cell.schema) {
-//            std::cout << anyToString(cell.schema["rootpage"]) << std::endl;
+    for (SqliteBTreeSchemaCell cell : cells) {
+        for (const auto& pair : cell.schema) {
+            //            std::cout << anyToString(cell.schema["rootpage"]) << std::endl;
             if (pair.first == "type" && anyToString(pair.second) == "table" &&
                 !anyToString(cell.schema["tbl_name"]).starts_with("sqlite")) {
                 std::cout << anyToString(cell.schema["tbl_name"]) << " " << anyToString(cell.schema["rootpage"]) << " ";
             }
         }
     }
-
 }
-
-
