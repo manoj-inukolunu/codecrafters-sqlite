@@ -6,6 +6,11 @@
 
 #include "SqliteSchemaPageReader.h"
 
+#include "antlr4-runtime.h"
+#include "gen_sqlite/SQLiteLexer.h"
+#include "gen_sqlite/SQLiteParser.h"
+#include "SQLitePrinter.hpp"
+
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
 static const int CELL_OFFSET = 3;
 static const int PAGE_SIZE_OFFSET = 16;
@@ -14,7 +19,6 @@ static const int PAGE_SIZE_OFFSET = 16;
 enum Command {
     DBINFO, TABLES, INVALID
 };
-
 
 
 int read2Bytes(std::ifstream &file, int offset) {
@@ -65,7 +69,7 @@ int _main(int args, char **argv) {
 
 }
 
-int __main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
@@ -105,12 +109,34 @@ int __main(int argc, char *argv[]) {
             int pageSize = file_reader(database_file_path);
             std::ifstream dbFile(database_file_path, std::ios::binary);
             SqliteSchemaPageReader reader(1, pageSize, dbFile);
-            reader.printTableNames();
+            reader.buildSchemaTableRows();
             break;
         }
         default:
-            std::string query = command;
+//            std::string query = command;
+            antlr4::ANTLRInputStream input(command);
+            SQLiteLexer lexer(&input);
+            antlr4::CommonTokenStream tokens(&lexer);
+            SQLiteParser parser(&tokens);
 
+            auto *tree = parser.parse(); // top-level rule for this grammar
+
+            SqliteVisitor v;
+            v.visit(tree);
+
+            std::string tableName = v.tables[0];
+
+              // predicate like filter()
+
+
+            int pageSize = file_reader(database_file_path);
+            std::cout << "Page Size " << pageSize << std::endl;
+            std::ifstream dbFile(database_file_path, std::ios::binary);
+            SqliteSchemaPageReader reader(2, pageSize, dbFile);
+
+            auto it = std::find_if(v.tables.begin(), v.tables.end(),
+                                   [](std::string x) { return x == tableName; });
+            std::cout << reader.numCellsInPage << std::endl;
     }
     return 0;
 }

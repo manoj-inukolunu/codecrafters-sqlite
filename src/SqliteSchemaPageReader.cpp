@@ -159,8 +159,8 @@ std::string anyToString(const std::any &a) {
         return std::string(std::any_cast<const char *>(a));
     else if (a.type() == typeid(char *))
         return std::string(std::any_cast<char *>(a));
-    else if (a.type() == typeid(int))
-        return std::to_string(std::any_cast<int>(a));
+    else if (a.type() == typeid(int64_t))
+        return std::to_string(std::any_cast<int64_t>(a));
     else if (a.type() == typeid(double))
         return std::to_string(std::any_cast<double>(a));
     else if (a.type() == typeid(float))
@@ -183,16 +183,38 @@ void SqliteSchemaPageReader::buildSqliteSchemaTable() {
     for (int colIdx = 0; colIdx < 5; colIdx++) {
         for (auto &cell: cells) {
             cell.schema[arr[colIdx]] = cell.record.recordColumns[colIdx].content;
+            if (colIdx == 3) {
+                cell.schema[arr[colIdx]] = cell.record.recordColumns[colIdx].value;
+            }
         }
+    }
+}
+
+void SqliteSchemaPageReader::buildSchemaTableRows() {
+    for (SqliteBTreeSchemaCell cell: cells) {
+        SqliteSchemaTables page;
+        page.type = anyToString(cell.schema["type"]);
+        page.name = anyToString(cell.schema["name"]);
+        if (cell.schema["rootpage"].type() == typeid(int64_t)) {
+            page.rootPage = std::any_cast<int64_t>(cell.schema["rootpage"]);
+        }
+        page.sql = anyToString(cell.schema["sql"]);
+        page.tableName = anyToString(cell.schema["tbl_name"]);
+        tables.emplace_back(page);
+    }
+
+    for (auto table: tables) {
+        table.toString();
     }
 }
 
 void SqliteSchemaPageReader::printTableNames() {
     for (SqliteBTreeSchemaCell cell: cells) {
         for (const auto &pair: cell.schema) {
+//            std::cout << anyToString(cell.schema["rootpage"]) << std::endl;
             if (pair.first == "type" && anyToString(pair.second) == "table" &&
                 !anyToString(cell.schema["tbl_name"]).starts_with("sqlite")) {
-                std::cout << anyToString(cell.schema["tbl_name"]) << " ";
+                std::cout << anyToString(cell.schema["tbl_name"]) << " " << anyToString(cell.schema["rootpage"]) << " ";
             }
         }
     }

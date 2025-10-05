@@ -21,10 +21,23 @@
  * Schema Page is the first page of the file
  */
 
+#include "SqlitePageReader.h"
 
 
+struct SqliteSchemaTables {
+    std::string tableName;
+    std::string type;
+    std::string sql;
+    std::string name;
+    int rootPage;
 
-struct SqliteBTreeSchemaCell {
+    void toString() const {
+        std::cout << "Table Name " << tableName << " type " << type << " sql " << sql << " rootPage " << rootPage
+                  << " name " << name << std::endl;
+    }
+};
+
+struct SqliteBTreeSchemaCell : SqlitePageCell {
     struct RecordHeader {
         varint headerSize;
         std::vector<RecordColumn> recordColumns;
@@ -60,16 +73,19 @@ public:
     FileOffset rightMostPointer;
     std::vector<SqliteBTreeSchemaCell> cells;
 
+    std::vector<SqliteSchemaTables> tables;
+
     std::vector<FileOffset> cellContentOffsets;
     // The database dbFile
     std::ifstream &dbFile;
 
     void processCellPointers();
 
-
     void processAllCells();
 
     void printTableNames();
+
+    void buildSchemaTableRows();
 
 private:
 
@@ -84,6 +100,7 @@ private:
     void buildSqliteSchemaTable();
 
     void parseHeader();
+
 };
 
 
