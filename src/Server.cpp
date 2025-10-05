@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 
         SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
 
-        std::cout << "Number of rows " << rootPageReader.numCellsInPage << std::endl;
+        std::cout << rootPageReader.numCellsInPage << std::endl;
     }
     return 0;
 }
