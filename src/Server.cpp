@@ -65,7 +65,7 @@ int _main(int args, char **argv) {
 
 }
 
-int main(int argc, char *argv[]) {
+int __main(int argc, char *argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
@@ -109,7 +109,8 @@ int main(int argc, char *argv[]) {
             break;
         }
         default:
-            throw std::runtime_error("Fail");
+            std::string query = command;
+
     }
     return 0;
 }

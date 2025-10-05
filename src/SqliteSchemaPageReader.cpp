@@ -185,8 +185,6 @@ void SqliteSchemaPageReader::buildSqliteSchemaTable() {
             cell.schema[arr[colIdx]] = cell.record.recordColumns[colIdx].content;
         }
     }
-
-
 }
 
 void SqliteSchemaPageReader::printTableNames() {
