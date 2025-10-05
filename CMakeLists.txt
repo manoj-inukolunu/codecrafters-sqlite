@@ -10,6 +10,22 @@ set(ANTLR4_RUNTIME_TARGET antlr4`1_static)]]
 
 #find_package(antlr4  CONFIG REQUIRED)
 
+set(ANTLR4_TAR "${CMAKE_SOURCE_DIR}/ant.tar.gz")
+set(ANTLR4_EXTRACT_DIR "${CMAKE_SOURCE_DIR}")
+
+if(NOT EXISTS "${ANTLR4_EXTRACT_DIR}/lib/libantlr4-runtime.a")
+    message(STATUS "Extracting ANTLR4 runtime from ${ANTLR4_TAR}")
+    file(MAKE_DIRECTORY "${ANTLR4_EXTRACT_DIR}")
+    file(ARCHIVE_EXTRACT INPUT "${ANTLR4_TAR}" DESTINATION "${ANTLR4_EXTRACT_DIR}")
+endif()
+
+add_library(antlr4_runtime STATIC IMPORTED)
+set_target_properties(antlr4_runtime PROPERTIES
+        IMPORTED_LOCATION             "${ANTLR4_EXTRACT_DIR}/third_party/libantlr4-runtime.a"
+)
+
+
+
 
 set(GENERATED
         src/gen_sqlite/SQLiteLexer.cpp
@@ -30,10 +46,10 @@ add_library(sqlite_grammar
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
 )
-set(ANTLR_LIB "${CMAKE_SOURCE_DIR}/third_party/libantlr4-runtime.a")
+#set(ANTLR_LIB "${CMAKE_SOURCE_DIR}/third_party/libantlr4-runtime.a")
 
 target_include_directories(sqlite_grammar PUBLIC gen_sqlite)
-target_link_libraries(sqlite_grammar PUBLIC ${ANTLR_LIB})
+target_link_libraries(sqlite_grammar PUBLIC antlr4_runtime)
 
 
 add_executable(exe ${SOURCE_FILES} ${GENERATED}
@@ -53,7 +69,7 @@ add_executable(exe ${SOURCE_FILES} ${GENERATED}
 
 
 target_include_directories(exe PRIVATE gen_sqlite)
-target_link_libraries(exe PRIVATE sqlite_grammar ${ANTLR_LIB})
+target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 
 
 
