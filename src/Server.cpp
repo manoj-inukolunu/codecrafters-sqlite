@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
         int pageSize = file_reader(database_file_path);
         std::ifstream dbFile(database_file_path, std::ios::binary);
         SqliteSchemaPageReader reader(1, pageSize, dbFile);
-        reader.buildSchemaTableRows();
+        reader.printTableNames();
         break;
     }
     default:
