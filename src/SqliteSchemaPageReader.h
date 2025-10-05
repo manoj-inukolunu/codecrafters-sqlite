@@ -14,6 +14,7 @@
 #include <cassert>
 #include <map>
 #include <any>
+#include "SqliteUtils.h"
 
 
 /**
@@ -63,8 +64,6 @@ public:
     // The database dbFile
     std::ifstream &dbFile;
 
-    std::pair<uint64_t, FileOffset> readVarInt(FileOffset offset);
-
     void processCellPointers();
 
 
@@ -85,20 +84,6 @@ private:
     void buildSqliteSchemaTable();
 
     void parseHeader();
-
-    int read2Bytes(FileOffset offset);
-
-    int read1Byte(FileOffset offset);
-
-
-    static uint16_t swap(uint16_t x) {
-        return (x >> 8) | (x << 8);
-    }
-
-    static bool little_endian() {
-        int x = 1;
-        return (*reinterpret_cast<char *>(&x) == 1);
-    }
 };
 
 
