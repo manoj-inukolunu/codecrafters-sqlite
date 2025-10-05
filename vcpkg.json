@@ -1,6 +1,6 @@
 {
     "dependencies": [
-        "antlr4-cpp"
+        "antlr4"
     ],
     "version": "1.0.0",
     "name": "parser"
