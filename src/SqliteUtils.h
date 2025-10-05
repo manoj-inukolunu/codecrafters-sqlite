@@ -6,6 +6,7 @@
 #define SQLITE_STARTER_CPP_SQLITEUTILS_H
 
 
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 
@@ -48,7 +49,7 @@ struct RecordColumn {
     varint serialType;
     long contentSize;
     DataType type;
-    uint8_t numBits;
+    std::uint8_t numBits;
     std::string content;
     int64_t value;
 };
