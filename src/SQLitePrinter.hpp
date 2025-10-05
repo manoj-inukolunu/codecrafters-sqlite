@@ -12,12 +12,12 @@ public:
         return s;
     }
 
-    std::set<std::string> tables;
+    std::vector<std::string> tables;
     bool countStarQuery = false;
 
     std::any visitTable_or_subquery(SQLiteParser::Table_or_subqueryContext *ctx) override {
         if (auto tblName = ctx->table_name()) {
-            tables.insert(ctx->table_name()->getText());
+            tables.emplace_back(ctx->table_name()->getText());
         }
         return antlr4::tree::AbstractParseTreeVisitor::visitChildren(ctx);
     }
@@ -25,7 +25,7 @@ public:
 
     std::any visitQualified_table_name(SQLiteParser::Qualified_table_nameContext *ctx) override {
         if (auto tn = ctx->table_name()) {
-            tables.insert(tn->getText());
+            tables.emplace_back(tn->getText());
         }
 
         return antlr4::tree::AbstractParseTreeVisitor::visitChildren(ctx);
