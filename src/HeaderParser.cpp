@@ -1,3 +1,4 @@
+/*
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -253,7 +254,9 @@ int __main() {
     }
 
     auto page = readPage(f, pageNo, pageSize);
-    BtreeHeader h = parseBtreeHeader(page, /*isPage1=*/false);
+    BtreeHeader h = parseBtreeHeader(page, */
+/*isPage1=*//*
+false);
 
     if (h.pageType != 0x0D) {
         std::cerr << "Page " << pageNo << " is not a table leaf (0x0D). Got 0x"
@@ -343,3 +346,4 @@ int __main() {
 
     return 0;
 }
+*/
