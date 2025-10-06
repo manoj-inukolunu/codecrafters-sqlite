@@ -15,6 +15,7 @@ SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::i
     if (pageNum == 0) {
         throw std::runtime_error("Invalid Page Number 0");
     }
+    pageBegin = FileOffset((pageNum - 1) * pageSize);
     if (pageNum == 1) {
         this->parseHeader();
     } else {
@@ -32,7 +33,7 @@ void SqliteSchemaPageReader::processCellPointers() {
     }
     for (int i = 0; i < this->numCellsInPage; i++) {
         SqliteBTreeSchemaCell cell;
-        cell.offset = read2Bytes(cellPointerStart, dbFile);
+        cell.offset = pageBegin + read2Bytes(cellPointerStart, dbFile);
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;
@@ -89,6 +90,10 @@ void SqliteSchemaPageReader::buildCellBody(SqliteBTreeSchemaCell &cell) {
                 int64_t value = 0;
                 dbFile.read(reinterpret_cast<char *>(&value), recordColumn.numBits);
                 recordColumn.value = value;
+                break;
+            }
+            case NULL_TYPE: {
+                // do nothing value is null
                 break;
             }
             default:

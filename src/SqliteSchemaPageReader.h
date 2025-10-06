@@ -32,7 +32,7 @@ struct SqliteSchemaTables {
     int rootPage;
 
     void toString() const {
-        std::cout << "Table Name " << tableName << " type " << type << " sql " << sql << " rootPage " << rootPage
+        std::cout << "SqliteObject Name " << tableName << " type " << type << " sql " << sql << " rootPage " << rootPage
                   << " name " << name << std::endl;
     }
 };
@@ -101,6 +101,7 @@ private:
 
     void parseHeader();
 
+    FileOffset pageBegin;
 };
 
 
