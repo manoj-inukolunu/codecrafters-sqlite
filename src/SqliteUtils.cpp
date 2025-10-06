@@ -36,33 +36,30 @@ int read1Byte(FileOffset offset, std::ifstream &dbFile) {
     size_t n = 1;
     uint16_t value = 0;
     dbFile.read(reinterpret_cast<char *>(&value), n);
-    dbFile.seekg(current, std::ios::beg);
     return value;
 }
 
 std::pair<uint64_t, FileOffset> readVarInt(FileOffset offset, std::ifstream &dbFile) {
-    auto isMsbZero = [](int val) {
-        return ((val >> 7) & 0x01) == 0;
+    auto readByte = [&](FileOffset& off) -> uint8_t {
+        int x = read1Byte(off, dbFile); // must return 0..255 or throw on error
+        off += 1;
+        return static_cast<uint8_t>(x);
     };
-    uint64_t accum = 0;
-    std::uint8_t data[9];
-    int breakPoint = 0;
-    for (int i = 0; i < 9; i++) {
-        int currentByte = read1Byte(offset, dbFile);
-        data[i] = (i == 8) ? currentByte : (currentByte & 0x7F);
-        breakPoint = i;
-        offset += 1;
-        if (isMsbZero(currentByte)) {
-            break;
+
+    uint64_t val = 0;
+
+    // Read up to 8 continuation bytes (7 bits each). Stop if MSB==0.
+    for (int i = 0; i < 8; ++i) {
+        uint8_t b = readByte(offset);
+        if ((b & 0x80u) == 0) {
+            val = (val << 7) | b;          // last byte contributes 7 bits
+            return {val, offset};
         }
+        val = (val << 7) | (b & 0x7Fu);     // continuation: take low 7 bits
     }
-    accum = data[0];
-    for (int i = 1; i <= breakPoint; i++) {
-        if (breakPoint == 8 && i == breakPoint) {
-            accum = accum << 8 | data[i];
-        } else {
-            accum = accum << 7 | data[i];
-        }
-    }
-    return std::make_pair(accum, offset);
+
+    // If we got here, we already consumed 8 bytes with MSB=1. The 9th byte contributes 8 bits.
+    uint8_t last = readByte(offset);
+    val = (val << 8) | last;
+    return {val, offset};
 }

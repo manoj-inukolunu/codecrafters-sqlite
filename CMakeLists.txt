@@ -13,7 +13,7 @@ set(ANTLR4_RUNTIME_TARGET antlr4`1_static)]]
 set(ANTLR4_TAR "${CMAKE_SOURCE_DIR}/ant.tar.gz")
 set(ANTLR4_EXTRACT_DIR "${CMAKE_SOURCE_DIR}")
 
-if(NOT EXISTS "${ANTLR4_EXTRACT_DIR}/lib/libantlr4-runtime.a")
+if(NOT EXISTS "${ANTLR4_EXTRACT_DIR}/third_party/libantlr4-runtime.a")
     message(STATUS "Extracting ANTLR4 runtime from ${ANTLR4_TAR}")
     file(MAKE_DIRECTORY "${ANTLR4_EXTRACT_DIR}")
     file(ARCHIVE_EXTRACT INPUT "${ANTLR4_TAR}" DESTINATION "${ANTLR4_EXTRACT_DIR}")
@@ -32,7 +32,6 @@ set(GENERATED
         src/gen_sqlite/SQLiteParser.cpp
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
-        src/HeaderParser.cpp
 )
 
 
