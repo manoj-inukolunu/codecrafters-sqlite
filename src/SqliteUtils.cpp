@@ -4,6 +4,8 @@
 
 #include "SqliteUtils.h"
 
+#include <cstdint>
+
 
 uint16_t swap(uint16_t x) {
     return (x >> 8) | (x << 8);
@@ -43,7 +45,7 @@ std::pair<uint64_t, FileOffset> readVarInt(FileOffset offset, std::ifstream &dbF
         return ((val >> 7) & 0x01) == 0;
     };
     uint64_t accum = 0;
-    uint8_t data[9];
+    std::uint8_t data[9];
     int breakPoint = 0;
     for (int i = 0; i < 9; i++) {
         int currentByte = read1Byte(offset, dbFile);
