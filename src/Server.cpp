@@ -126,6 +126,7 @@ int main(int argc, char* argv[]) {
         v.visit(tree);
 
         std::string tableName = v.tables[0];
+        std::cout << "Found Table " << tableName << std::endl;
 
         int pageSize = file_reader(database_file_path);
         std::ifstream dbFile(database_file_path, std::ios::binary);
@@ -137,9 +138,22 @@ int main(int argc, char* argv[]) {
                                    return x.tableName == tableName;
                                });
 
-        SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
+        std::cout << "Table " << tableName << " has create SQL " << it->sql << std::endl;
 
-        std::cout << rootPageReader.numCellsInPage << std::endl;
+
+        antlr4::ANTLRInputStream sql(it->sql);
+        SQLiteLexer lex(&sql);
+        antlr4::CommonTokenStream tok(&lex);
+        SQLiteParser par(&tok);
+
+        auto* tr = par.parse(); // top-level rule for this grammar
+
+        SqliteVisitor v1;
+        v1.visit(tr);
+
+        std::cout << v1.statementTypeToString() << std::endl;
+
+        SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
     }
     return 0;
 }

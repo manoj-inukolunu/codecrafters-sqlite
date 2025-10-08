@@ -8,6 +8,11 @@
 #include <format>
 #include <vector>
 
+#include "ANTLRInputStream.h"
+#include "SQLiteLexer.h"
+#include "SQLiteParser.h"
+#include "SQLitePrinter.hpp"
+
 
 SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile) : dbFile(dbFile),
                                                                                                    pageNum(pageNum),
@@ -108,6 +113,9 @@ void SqliteSchemaPageReader::processAllCells() {
         buildCell(cells[i]);
     }
 }
+
+
+
 
 
 void SqliteSchemaPageReader::parseHeader() {

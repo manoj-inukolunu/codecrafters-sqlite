@@ -36,6 +36,10 @@ set(GENERATED
         src/catalog/CatalogBuilder.cpp
         src/catalog/CatalogBuilder.h
         src/Sqlite.h
+        src/Node.cpp
+        src/Node.h
+        src/parser/parser.h
+        src/parser/CreateStatement.cpp
 )
 
 
@@ -63,11 +67,7 @@ add_executable(exe ${SOURCE_FILES} ${GENERATED}
         src/SqlitePageReader.h
         src/SqliteUtils.cpp
         src/SqliteUtils.h
-        src/sqlite_main.cpp
         src/SQLitePrinter.cpp
-        src/SQLitePrinter.cpp
-        src/SQLitePrinter.hpp
-        src/sqlite_main.cpp
 )
 
 

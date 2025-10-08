@@ -15,6 +15,7 @@
 #include <map>
 #include <any>
 #include "SqliteUtils.h"
+#include "catalog/CatalogBuilder.h"
 
 
 /**
@@ -99,6 +100,7 @@ private:
 
     void buildSqliteSchemaTable();
 
+    void buildCatalog();
     void parseHeader();
 
     FileOffset pageBegin;
