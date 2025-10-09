@@ -5,23 +5,11 @@
 
 #include "Node.h"
 #include "parser/CreateTableStatement.h"
+#include "parser/SelectStatement.h"
 
 
 class SqliteVisitor : public SQLiteParserBaseVisitor {
 public:
-    StatementType statementType;
-
-    std::string statementTypeToString() const {
-        switch (statementType) {
-        case StatementType::SELECT_STATEMENT:
-            return "SELECT";
-        case StatementType::CREATE_STATEMENT:
-            return "CREATE TABLE";
-        default:
-            return "INVALID";
-        }
-    }
-
     static inline std::string upper(std::string s) {
         std::transform(s.begin(), s.end(), s.begin(),
                        [](unsigned char c) {
@@ -51,18 +39,57 @@ public:
         return visitChildren(context);
     }
 
-    std::any visitSql_stmt(SQLiteParser::Sql_stmtContext* ctx) override {
-        if (auto stmt = ctx->create_table_stmt()) {
-            statementType = StatementType::CREATE_STATEMENT;
-        } else if (auto stmt = ctx->select_stmt()) {
-            statementType = StatementType::SELECT_STATEMENT;
+    std::any visitParse(SQLiteParser::ParseContext* context) override {
+        if (context->sql_stmt_list().size() > 1) {
+            throw std::runtime_error("Only One statement is accepted at a time and semi colon is not required");
         }
-        return visitChildren(ctx);
+
+        std::any statement = visit(context->sql_stmt_list()[0]);
+
+        if (statement.type() == typeid(CreateTableStatement)) {
+            return std::any_cast<CreateTableStatement>(statement);
+        }
+        throw std::runtime_error("Parsing failed only create table statement is implemented");
+    }
+
+    std::any visitSql_stmt_list(SQLiteParser::Sql_stmt_listContext* context) override {
+        if (context->SCOL().data()) {
+            throw std::runtime_error("Only One statement is accepted at a time and semi colon is not requried");
+        }
+        std::any statement = visit(context->sql_stmt()[0]);
+
+        if (statement.type() == typeid(CreateTableStatement)) {
+            return std::any_cast<CreateTableStatement>(statement);
+        }
+        if (statement.type() == typeid(SelectStatement)) {
+            return std::any_cast<SelectStatement>(statement);
+        }
+        throw std::runtime_error("Parsing failed only create table statement is implemented");
+    }
+
+    std::any visitSql_stmt(SQLiteParser::Sql_stmtContext* ctx) override {
+        std::any node = visitChildren(ctx);
+        return node;
+    }
+
+    std::any visitSelect_stmt(SQLiteParser::Select_stmtContext* context) override {
+        if (context->common_table_stmt()) {
+            throw std::runtime_error("Common Table expressions are not supported yet");
+        }
+        if (context->order_by_stmt() || context->limit_stmt()) {
+            throw std::runtime_error("Order by or limit  is not supported yet");
+        }
+
+        return visitChildren(context);
     }
 
     std::any visitSelect_core(SQLiteParser::Select_coreContext* context) override {
-        selectQuery = true;
-        return visitChildren(context);
+        SelectStatement statement(StatementType::SELECT_STATEMENT);
+
+        if (context->whereExpr) {
+            std::any whereClause = visit(context->whereExpr);
+        }
+        return statement;
     }
 
     std::any visitTable_or_subquery(SQLiteParser::Table_or_subqueryContext* ctx) override {
@@ -131,6 +158,20 @@ public:
                 }
             }
         }
+
+        if (ctx->literal_value()) {
+            return visit(ctx->literal_value());
+        }
+
+        if (ctx->column_name()) {
+            return visit(ctx->column_name());
+        }
+
+
         return visitChildren(ctx);
+    }
+
+    std::any visitLiteral_value(SQLiteParser::Literal_valueContext* context) override {
+        return visitChildren(context);
     }
 };

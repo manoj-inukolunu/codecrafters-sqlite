@@ -9,9 +9,11 @@
 #include "parser.h"
 
 class SqlStatement {
-
 public:
-    SqlStatement(StatementType type);
+    explicit SqlStatement(StatementType type): statementType(type) {
+    }
+
+    virtual ~SqlStatement() = default;
 
     StatementType statementType;
 };

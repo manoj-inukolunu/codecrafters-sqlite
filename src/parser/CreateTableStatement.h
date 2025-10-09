@@ -13,7 +13,7 @@
 
 class CreateTableStatement : SqlStatement {
 public:
-    CreateTableStatement(StatementType type) : SqlStatement(type) {
+    explicit CreateTableStatement(StatementType type) : SqlStatement(type) {
     }
 
     std::string tableName;
