@@ -83,7 +83,53 @@ public:
 
     virtual std::any visitDrop_stmt(SQLiteParser::Drop_stmtContext *context) = 0;
 
-    virtual std::any visitExpr(SQLiteParser::ExprContext *context) = 0;
+    virtual std::any visitQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext *context) = 0;
+
+    virtual std::any visitAddSubExpr(SQLiteParser::AddSubExprContext *context) = 0;
+
+    virtual std::any visitCastExpr(SQLiteParser::CastExprContext *context) = 0;
+
+    virtual std::any visitRaiseExpr(SQLiteParser::RaiseExprContext *context) = 0;
+
+    virtual std::any visitInExpr(SQLiteParser::InExprContext *context) = 0;
+
+    virtual std::any visitOrExpr(SQLiteParser::OrExprContext *context) = 0;
+
+    virtual std::any visitMulDivModExpr(SQLiteParser::MulDivModExprContext *context) = 0;
+
+    virtual std::any visitExistsExpr(SQLiteParser::ExistsExprContext *context) = 0;
+
+    virtual std::any visitParenExpr(SQLiteParser::ParenExprContext *context) = 0;
+
+    virtual std::any visitBetweenExpr(SQLiteParser::BetweenExprContext *context) = 0;
+
+    virtual std::any visitBitwiseExpr(SQLiteParser::BitwiseExprContext *context) = 0;
+
+    virtual std::any visitUnaryExpr(SQLiteParser::UnaryExprContext *context) = 0;
+
+    virtual std::any visitLiteralExpr(SQLiteParser::LiteralExprContext *context) = 0;
+
+    virtual std::any visitNullCheckExpr(SQLiteParser::NullCheckExprContext *context) = 0;
+
+    virtual std::any visitFunctionCallExpr(SQLiteParser::FunctionCallExprContext *context) = 0;
+
+    virtual std::any visitPipe2Expr(SQLiteParser::Pipe2ExprContext *context) = 0;
+
+    virtual std::any visitLikeExpr(SQLiteParser::LikeExprContext *context) = 0;
+
+    virtual std::any visitBindParamExpr(SQLiteParser::BindParamExprContext *context) = 0;
+
+    virtual std::any visitCaseExpr(SQLiteParser::CaseExprContext *context) = 0;
+
+    virtual std::any visitIsExpr(SQLiteParser::IsExprContext *context) = 0;
+
+    virtual std::any visitEqualityExpr(SQLiteParser::EqualityExprContext *context) = 0;
+
+    virtual std::any visitCollateExpr(SQLiteParser::CollateExprContext *context) = 0;
+
+    virtual std::any visitCompareExpr(SQLiteParser::CompareExprContext *context) = 0;
+
+    virtual std::any visitAndExpr(SQLiteParser::AndExprContext *context) = 0;
 
     virtual std::any visitRaise_function(SQLiteParser::Raise_functionContext *context) = 0;
 

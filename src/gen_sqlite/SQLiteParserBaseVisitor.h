@@ -143,7 +143,99 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitExpr(SQLiteParser::ExprContext *ctx) override {
+  virtual std::any visitQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitAddSubExpr(SQLiteParser::AddSubExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitCastExpr(SQLiteParser::CastExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitRaiseExpr(SQLiteParser::RaiseExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitInExpr(SQLiteParser::InExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitOrExpr(SQLiteParser::OrExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitMulDivModExpr(SQLiteParser::MulDivModExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExistsExpr(SQLiteParser::ExistsExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitParenExpr(SQLiteParser::ParenExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBetweenExpr(SQLiteParser::BetweenExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBitwiseExpr(SQLiteParser::BitwiseExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitUnaryExpr(SQLiteParser::UnaryExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLiteralExpr(SQLiteParser::LiteralExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitNullCheckExpr(SQLiteParser::NullCheckExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitFunctionCallExpr(SQLiteParser::FunctionCallExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitPipe2Expr(SQLiteParser::Pipe2ExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLikeExpr(SQLiteParser::LikeExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBindParamExpr(SQLiteParser::BindParamExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitCaseExpr(SQLiteParser::CaseExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitIsExpr(SQLiteParser::IsExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitEqualityExpr(SQLiteParser::EqualityExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitCollateExpr(SQLiteParser::CollateExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitCompareExpr(SQLiteParser::CompareExprContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitAndExpr(SQLiteParser::AndExprContext *ctx) override {
     return visitChildren(ctx);
   }
 

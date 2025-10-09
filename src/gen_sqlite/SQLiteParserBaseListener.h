@@ -112,8 +112,77 @@ public:
   virtual void enterDrop_stmt(SQLiteParser::Drop_stmtContext * /*ctx*/) override { }
   virtual void exitDrop_stmt(SQLiteParser::Drop_stmtContext * /*ctx*/) override { }
 
-  virtual void enterExpr(SQLiteParser::ExprContext * /*ctx*/) override { }
-  virtual void exitExpr(SQLiteParser::ExprContext * /*ctx*/) override { }
+  virtual void enterQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext * /*ctx*/) override { }
+  virtual void exitQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext * /*ctx*/) override { }
+
+  virtual void enterAddSubExpr(SQLiteParser::AddSubExprContext * /*ctx*/) override { }
+  virtual void exitAddSubExpr(SQLiteParser::AddSubExprContext * /*ctx*/) override { }
+
+  virtual void enterCastExpr(SQLiteParser::CastExprContext * /*ctx*/) override { }
+  virtual void exitCastExpr(SQLiteParser::CastExprContext * /*ctx*/) override { }
+
+  virtual void enterRaiseExpr(SQLiteParser::RaiseExprContext * /*ctx*/) override { }
+  virtual void exitRaiseExpr(SQLiteParser::RaiseExprContext * /*ctx*/) override { }
+
+  virtual void enterInExpr(SQLiteParser::InExprContext * /*ctx*/) override { }
+  virtual void exitInExpr(SQLiteParser::InExprContext * /*ctx*/) override { }
+
+  virtual void enterOrExpr(SQLiteParser::OrExprContext * /*ctx*/) override { }
+  virtual void exitOrExpr(SQLiteParser::OrExprContext * /*ctx*/) override { }
+
+  virtual void enterMulDivModExpr(SQLiteParser::MulDivModExprContext * /*ctx*/) override { }
+  virtual void exitMulDivModExpr(SQLiteParser::MulDivModExprContext * /*ctx*/) override { }
+
+  virtual void enterExistsExpr(SQLiteParser::ExistsExprContext * /*ctx*/) override { }
+  virtual void exitExistsExpr(SQLiteParser::ExistsExprContext * /*ctx*/) override { }
+
+  virtual void enterParenExpr(SQLiteParser::ParenExprContext * /*ctx*/) override { }
+  virtual void exitParenExpr(SQLiteParser::ParenExprContext * /*ctx*/) override { }
+
+  virtual void enterBetweenExpr(SQLiteParser::BetweenExprContext * /*ctx*/) override { }
+  virtual void exitBetweenExpr(SQLiteParser::BetweenExprContext * /*ctx*/) override { }
+
+  virtual void enterBitwiseExpr(SQLiteParser::BitwiseExprContext * /*ctx*/) override { }
+  virtual void exitBitwiseExpr(SQLiteParser::BitwiseExprContext * /*ctx*/) override { }
+
+  virtual void enterUnaryExpr(SQLiteParser::UnaryExprContext * /*ctx*/) override { }
+  virtual void exitUnaryExpr(SQLiteParser::UnaryExprContext * /*ctx*/) override { }
+
+  virtual void enterLiteralExpr(SQLiteParser::LiteralExprContext * /*ctx*/) override { }
+  virtual void exitLiteralExpr(SQLiteParser::LiteralExprContext * /*ctx*/) override { }
+
+  virtual void enterNullCheckExpr(SQLiteParser::NullCheckExprContext * /*ctx*/) override { }
+  virtual void exitNullCheckExpr(SQLiteParser::NullCheckExprContext * /*ctx*/) override { }
+
+  virtual void enterFunctionCallExpr(SQLiteParser::FunctionCallExprContext * /*ctx*/) override { }
+  virtual void exitFunctionCallExpr(SQLiteParser::FunctionCallExprContext * /*ctx*/) override { }
+
+  virtual void enterPipe2Expr(SQLiteParser::Pipe2ExprContext * /*ctx*/) override { }
+  virtual void exitPipe2Expr(SQLiteParser::Pipe2ExprContext * /*ctx*/) override { }
+
+  virtual void enterLikeExpr(SQLiteParser::LikeExprContext * /*ctx*/) override { }
+  virtual void exitLikeExpr(SQLiteParser::LikeExprContext * /*ctx*/) override { }
+
+  virtual void enterBindParamExpr(SQLiteParser::BindParamExprContext * /*ctx*/) override { }
+  virtual void exitBindParamExpr(SQLiteParser::BindParamExprContext * /*ctx*/) override { }
+
+  virtual void enterCaseExpr(SQLiteParser::CaseExprContext * /*ctx*/) override { }
+  virtual void exitCaseExpr(SQLiteParser::CaseExprContext * /*ctx*/) override { }
+
+  virtual void enterIsExpr(SQLiteParser::IsExprContext * /*ctx*/) override { }
+  virtual void exitIsExpr(SQLiteParser::IsExprContext * /*ctx*/) override { }
+
+  virtual void enterEqualityExpr(SQLiteParser::EqualityExprContext * /*ctx*/) override { }
+  virtual void exitEqualityExpr(SQLiteParser::EqualityExprContext * /*ctx*/) override { }
+
+  virtual void enterCollateExpr(SQLiteParser::CollateExprContext * /*ctx*/) override { }
+  virtual void exitCollateExpr(SQLiteParser::CollateExprContext * /*ctx*/) override { }
+
+  virtual void enterCompareExpr(SQLiteParser::CompareExprContext * /*ctx*/) override { }
+  virtual void exitCompareExpr(SQLiteParser::CompareExprContext * /*ctx*/) override { }
+
+  virtual void enterAndExpr(SQLiteParser::AndExprContext * /*ctx*/) override { }
+  virtual void exitAndExpr(SQLiteParser::AndExprContext * /*ctx*/) override { }
 
   virtual void enterRaise_function(SQLiteParser::Raise_functionContext * /*ctx*/) override { }
   virtual void exitRaise_function(SQLiteParser::Raise_functionContext * /*ctx*/) override { }
