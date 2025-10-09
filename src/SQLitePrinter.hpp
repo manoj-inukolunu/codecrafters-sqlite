@@ -4,11 +4,7 @@
 #include <iostream>
 
 #include "Node.h"
-
-
-enum class StatementType {
-    SELECT, CREATE_TABLE
-};
+#include "parser/CreateTableStatement.h"
 
 
 class SqliteVisitor : public SQLiteParserBaseVisitor {
@@ -17,9 +13,9 @@ public:
 
     std::string statementTypeToString() const {
         switch (statementType) {
-        case StatementType::SELECT:
+        case StatementType::SELECT_STATEMENT:
             return "SELECT";
-        case StatementType::CREATE_TABLE:
+        case StatementType::CREATE_STATEMENT:
             return "CREATE TABLE";
         default:
             return "INVALID";
@@ -40,14 +36,13 @@ public:
 
 
     std::any visitSchema_name(SQLiteParser::Schema_nameContext* context) override {
-        visit(context->any_name());
+        context->any_name()->getText();
 
         return visitChildren(context);
     }
 
     std::any visitAny_name(SQLiteParser::Any_nameContext* context) override {
         context->getText();
-
         return visitChildren(context);
     }
 
@@ -58,9 +53,9 @@ public:
 
     std::any visitSql_stmt(SQLiteParser::Sql_stmtContext* ctx) override {
         if (auto stmt = ctx->create_table_stmt()) {
-            statementType = StatementType::CREATE_TABLE;
+            statementType = StatementType::CREATE_STATEMENT;
         } else if (auto stmt = ctx->select_stmt()) {
-            statementType = StatementType::SELECT;
+            statementType = StatementType::SELECT_STATEMENT;
         }
         return visitChildren(ctx);
     }
@@ -78,22 +73,38 @@ public:
     }
 
     std::any visitColumn_constraint(SQLiteParser::Column_constraintContext* ctx) override {
-        CreateTable createTable;
-
         return visitChildren(ctx);
+    }
+
+    std::any visitColumn_def(SQLiteParser::Column_defContext* ctx) override {
+        ColumnDefinition definition(ctx->column_name()->getText(), dataTypeFromString(ctx->type_name()->getText()));
+        return definition;
     }
 
     std::any visitCreate_table_stmt(SQLiteParser::Create_table_stmtContext* context) override {
         std::vector<SQLiteParser::Column_defContext*> ctx = context->column_def();
 
-        for (int i = 0; i < ctx.size(); i++) {
-            std::cout << ctx[i]->column_name()->getText() << std::endl;
-            std::cout << ctx[i]->type_name()->getText() << std::endl;
-            for (int j = 0; j < ctx[i]->column_constraint().size(); j++) {
-                std::cout << ctx[i]->column_constraint()[j]->getText() << std::endl;
-            }
+        if (ctx.size() == 0) {
+            throw std::runtime_error("No column definition found . There must be columns for creating");
         }
-        return visitChildren(context);
+
+
+        CreateTableStatement createTable(StatementType::CREATE_STATEMENT);
+        if (context->schema_name()) {
+            createTable.schemaName = context->schema_name()->getText();
+        }
+        createTable.tableName = context->table_name()->getText();
+        createTable.isCreateAsSelect = context->select_stmt();
+        createTable.isTemporary = context->TEMP_() || context->TEMPORARY_();
+        createTable.withoutRowId = context->WITHOUT_();
+
+        std::vector<ColumnDefinition> columns;
+        for (int i = 0; i < ctx.size(); i++) {
+            columns.emplace_back(std::any_cast<ColumnDefinition>(visit(ctx[i])));
+        }
+        createTable.columns = columns;
+
+        return createTable;
     }
 
 

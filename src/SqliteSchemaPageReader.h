@@ -14,7 +14,7 @@
 #include <cassert>
 #include <map>
 #include <any>
-#include "SqliteUtils.h"
+#include "common/SqliteUtils.h"
 #include "catalog/CatalogBuilder.h"
 
 

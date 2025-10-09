@@ -24,6 +24,23 @@ set_target_properties(antlr4_runtime PROPERTIES
         IMPORTED_LOCATION             "${ANTLR4_EXTRACT_DIR}/third_party/libantlr4-runtime.a"
 )
 
+enable_testing()
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.14.0
+)
+FetchContent_MakeAvailable(googletest)
+add_executable(tests ${SOURCE_FILES} ${GENERATED}
+        tests/test_parse.cpp
+)
+target_include_directories(tests PRIVATE src)
+target_link_libraries(tests PRIVATE GTest::gtest_main)
+include(GoogleTest)
+gtest_discover_tests(tests)
+
+
 
 
 
@@ -35,14 +52,19 @@ set(GENERATED
         src/CellParser.cpp
         src/catalog/CatalogBuilder.cpp
         src/catalog/CatalogBuilder.h
-        src/Sqlite.h
+        src/common/Sqlite.h
         src/Node.cpp
         src/Node.h
         src/parser/parser.h
         src/parser/CreateStatement.cpp
         src/parser/SqlStatement.cpp
         src/parser/SqlStatement.h
-        src/parser/CreateStatement.h
+        src/parser/CreateTableStatement.h
+        src/parser/ColumnDefinition.cpp
+        src/parser/ColumnDefinition.h
+        src/parser/Constraint.cpp
+        src/parser/Constraint.h
+        tests/test_parse.cpp
 )
 
 
@@ -62,20 +84,16 @@ target_include_directories(sqlite_grammar PUBLIC gen_sqlite)
 target_link_libraries(sqlite_grammar PUBLIC antlr4_runtime)
 
 
-add_executable(exe ${SOURCE_FILES} ${GENERATED}
-        src/SqliteSchemaPageReader.cpp
-        src/SqliteSchemaPageReader.h
-        src/utils.h
-        src/SqlitePageReader.cpp
-        src/SqlitePageReader.h
-        src/SqliteUtils.cpp
-        src/SqliteUtils.h
-        src/SQLitePrinter.cpp
-)
+add_executable(exe ${SOURCE_FILES} ${GENERATED})
 
 
 target_include_directories(exe PRIVATE gen_sqlite)
 target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
+
+
+
+
+
 
 
 

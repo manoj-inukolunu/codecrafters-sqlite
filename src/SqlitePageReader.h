@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include "SqliteUtils.h"
+#include "common/SqliteUtils.h"
 
 struct SqlitePageCell {
 
