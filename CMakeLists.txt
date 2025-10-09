@@ -40,6 +40,9 @@ set(GENERATED
         src/Node.h
         src/parser/parser.h
         src/parser/CreateStatement.cpp
+        src/parser/SqlStatement.cpp
+        src/parser/SqlStatement.h
+        src/parser/CreateStatement.h
 )
 
 
