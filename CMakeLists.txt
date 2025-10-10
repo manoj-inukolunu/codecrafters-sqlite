@@ -13,7 +13,6 @@ set(GENERATED
         src/gen_sqlite/SQLiteParser.cpp
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
-        src/HeaderParser.cpp
 )
 
 

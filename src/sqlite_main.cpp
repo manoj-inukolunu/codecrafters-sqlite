@@ -1,7 +1,6 @@
-/*
 //
 // Created by Manoj Inukolunu on 04/10/25.
-
+//
 #include "antlr4-runtime.h"
 #include "gen_sqlite/SQLiteLexer.h"
 #include "gen_sqlite/SQLiteParser.h"
@@ -28,4 +27,3 @@ int main() {
 
     return 0;
 }
-*/
