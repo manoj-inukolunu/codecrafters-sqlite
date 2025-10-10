@@ -31,6 +31,12 @@ TEST_CASE("Where") {
         std::cout << where->left->value << " " << where->right->value << std::endl;
     };
 
+    std::cout << node->fromTable->tableName << std::endl;
+
+    for (auto column : node->fromTable->columns) {
+        std::cout << column.name << std::endl;
+    }
+
     std::cout << "Testing " << std::endl;
 }
 

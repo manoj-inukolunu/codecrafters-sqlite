@@ -134,6 +134,12 @@ public:
         return visitChildren(context);
     }
 
+    std::any visitResult_column(SQLiteParser::Result_columnContext* context) override {
+        auto columnExpr = std::any_cast<std::shared_ptr<ParsedExpression>>(visit(context->expr()));
+
+        return columnExpr.get()->value;
+    }
+
     std::any visitSelect_core(SQLiteParser::Select_coreContext* context) override {
         auto statement = std::make_shared<SelectStatement>(StatementType::SELECT_STATEMENT);
         if (context->whereExpr) {
@@ -144,6 +150,18 @@ public:
         if (!context->table_or_subquery().empty() && context->table_or_subquery().size() == 1) {
             statement->fromTable = std::any_cast<std::shared_ptr<Table>>(visit(context->table_or_subquery()[0]));
         }
+
+        std::vector<Column> columns;
+
+        for (auto col : context->result_column()) {
+            std::string name = std::any_cast<std::string>(visit(col));
+            Column c;
+            c.name = name;
+            columns.emplace_back(c);
+        }
+
+        statement->fromTable->columns = columns;
+
         return statement;
     }
 
