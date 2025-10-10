@@ -110,8 +110,77 @@ public:
   virtual void enterDrop_stmt(SQLiteParser::Drop_stmtContext *ctx) = 0;
   virtual void exitDrop_stmt(SQLiteParser::Drop_stmtContext *ctx) = 0;
 
-  virtual void enterExpr(SQLiteParser::ExprContext *ctx) = 0;
-  virtual void exitExpr(SQLiteParser::ExprContext *ctx) = 0;
+  virtual void enterQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext *ctx) = 0;
+  virtual void exitQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext *ctx) = 0;
+
+  virtual void enterAddSubExpr(SQLiteParser::AddSubExprContext *ctx) = 0;
+  virtual void exitAddSubExpr(SQLiteParser::AddSubExprContext *ctx) = 0;
+
+  virtual void enterCastExpr(SQLiteParser::CastExprContext *ctx) = 0;
+  virtual void exitCastExpr(SQLiteParser::CastExprContext *ctx) = 0;
+
+  virtual void enterRaiseExpr(SQLiteParser::RaiseExprContext *ctx) = 0;
+  virtual void exitRaiseExpr(SQLiteParser::RaiseExprContext *ctx) = 0;
+
+  virtual void enterInExpr(SQLiteParser::InExprContext *ctx) = 0;
+  virtual void exitInExpr(SQLiteParser::InExprContext *ctx) = 0;
+
+  virtual void enterOrExpr(SQLiteParser::OrExprContext *ctx) = 0;
+  virtual void exitOrExpr(SQLiteParser::OrExprContext *ctx) = 0;
+
+  virtual void enterMulDivModExpr(SQLiteParser::MulDivModExprContext *ctx) = 0;
+  virtual void exitMulDivModExpr(SQLiteParser::MulDivModExprContext *ctx) = 0;
+
+  virtual void enterExistsExpr(SQLiteParser::ExistsExprContext *ctx) = 0;
+  virtual void exitExistsExpr(SQLiteParser::ExistsExprContext *ctx) = 0;
+
+  virtual void enterParenExpr(SQLiteParser::ParenExprContext *ctx) = 0;
+  virtual void exitParenExpr(SQLiteParser::ParenExprContext *ctx) = 0;
+
+  virtual void enterBetweenExpr(SQLiteParser::BetweenExprContext *ctx) = 0;
+  virtual void exitBetweenExpr(SQLiteParser::BetweenExprContext *ctx) = 0;
+
+  virtual void enterBitwiseExpr(SQLiteParser::BitwiseExprContext *ctx) = 0;
+  virtual void exitBitwiseExpr(SQLiteParser::BitwiseExprContext *ctx) = 0;
+
+  virtual void enterUnaryExpr(SQLiteParser::UnaryExprContext *ctx) = 0;
+  virtual void exitUnaryExpr(SQLiteParser::UnaryExprContext *ctx) = 0;
+
+  virtual void enterLiteralExpr(SQLiteParser::LiteralExprContext *ctx) = 0;
+  virtual void exitLiteralExpr(SQLiteParser::LiteralExprContext *ctx) = 0;
+
+  virtual void enterNullCheckExpr(SQLiteParser::NullCheckExprContext *ctx) = 0;
+  virtual void exitNullCheckExpr(SQLiteParser::NullCheckExprContext *ctx) = 0;
+
+  virtual void enterFunctionCallExpr(SQLiteParser::FunctionCallExprContext *ctx) = 0;
+  virtual void exitFunctionCallExpr(SQLiteParser::FunctionCallExprContext *ctx) = 0;
+
+  virtual void enterPipe2Expr(SQLiteParser::Pipe2ExprContext *ctx) = 0;
+  virtual void exitPipe2Expr(SQLiteParser::Pipe2ExprContext *ctx) = 0;
+
+  virtual void enterLikeExpr(SQLiteParser::LikeExprContext *ctx) = 0;
+  virtual void exitLikeExpr(SQLiteParser::LikeExprContext *ctx) = 0;
+
+  virtual void enterBindParamExpr(SQLiteParser::BindParamExprContext *ctx) = 0;
+  virtual void exitBindParamExpr(SQLiteParser::BindParamExprContext *ctx) = 0;
+
+  virtual void enterCaseExpr(SQLiteParser::CaseExprContext *ctx) = 0;
+  virtual void exitCaseExpr(SQLiteParser::CaseExprContext *ctx) = 0;
+
+  virtual void enterIsExpr(SQLiteParser::IsExprContext *ctx) = 0;
+  virtual void exitIsExpr(SQLiteParser::IsExprContext *ctx) = 0;
+
+  virtual void enterEqualityExpr(SQLiteParser::EqualityExprContext *ctx) = 0;
+  virtual void exitEqualityExpr(SQLiteParser::EqualityExprContext *ctx) = 0;
+
+  virtual void enterCollateExpr(SQLiteParser::CollateExprContext *ctx) = 0;
+  virtual void exitCollateExpr(SQLiteParser::CollateExprContext *ctx) = 0;
+
+  virtual void enterCompareExpr(SQLiteParser::CompareExprContext *ctx) = 0;
+  virtual void exitCompareExpr(SQLiteParser::CompareExprContext *ctx) = 0;
+
+  virtual void enterAndExpr(SQLiteParser::AndExprContext *ctx) = 0;
+  virtual void exitAndExpr(SQLiteParser::AndExprContext *ctx) = 0;
 
   virtual void enterRaise_function(SQLiteParser::Raise_functionContext *ctx) = 0;
   virtual void exitRaise_function(SQLiteParser::Raise_functionContext *ctx) = 0;

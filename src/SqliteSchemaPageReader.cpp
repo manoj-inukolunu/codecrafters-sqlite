@@ -8,6 +8,11 @@
 #include <format>
 #include <vector>
 
+#include "ANTLRInputStream.h"
+#include "SQLiteLexer.h"
+#include "SQLiteParser.h"
+#include "SQLitePrinter.hpp"
+
 
 SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile) : dbFile(dbFile),
                                                                                                    pageNum(pageNum),
@@ -15,6 +20,7 @@ SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::i
     if (pageNum == 0) {
         throw std::runtime_error("Invalid Page Number 0");
     }
+    pageBegin = FileOffset((pageNum - 1) * pageSize);
     if (pageNum == 1) {
         this->parseHeader();
     } else {
@@ -32,7 +38,7 @@ void SqliteSchemaPageReader::processCellPointers() {
     }
     for (int i = 0; i < this->numCellsInPage; i++) {
         SqliteBTreeSchemaCell cell;
-        cell.offset = read2Bytes(cellPointerStart, dbFile);
+        cell.offset = pageBegin + read2Bytes(cellPointerStart, dbFile);
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;
@@ -91,6 +97,10 @@ void SqliteSchemaPageReader::buildCellBody(SqliteBTreeSchemaCell &cell) {
                 recordColumn.value = value;
                 break;
             }
+            case NULL_TYPE: {
+                // do nothing value is null
+                break;
+            }
             default:
                 throw std::runtime_error("Invalid type ");
         }
@@ -103,6 +113,9 @@ void SqliteSchemaPageReader::processAllCells() {
         buildCell(cells[i]);
     }
 }
+
+
+
 
 
 void SqliteSchemaPageReader::parseHeader() {
@@ -145,13 +158,18 @@ void SqliteSchemaPageReader::parseHeader() {
         //        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
     }
 
-
+//    if (pageNum == 1) {
     processCellPointers();
-    buildSqliteSchemaTable();
+    if (pageNum == 1) {
+        buildSqliteSchemaTable();
+    }
+
+//    }
 }
 
 std::string anyToString(const std::any &a) {
-    if (!a.has_value()) return "null";
+    if (!a.has_value())
+        return "null";
 
     if (a.type() == typeid(std::string))
         return std::any_cast<std::string>(a);
@@ -203,22 +221,19 @@ void SqliteSchemaPageReader::buildSchemaTableRows() {
         tables.emplace_back(page);
     }
 
-    for (auto table: tables) {
+    /*for (auto table: tables) {
         table.toString();
-    }
+    }*/
 }
 
 void SqliteSchemaPageReader::printTableNames() {
     for (SqliteBTreeSchemaCell cell: cells) {
         for (const auto &pair: cell.schema) {
-//            std::cout << anyToString(cell.schema["rootpage"]) << std::endl;
+            //            std::cout << anyToString(cell.schema["rootpage"]) << std::endl;
             if (pair.first == "type" && anyToString(pair.second) == "table" &&
                 !anyToString(cell.schema["tbl_name"]).starts_with("sqlite")) {
-                std::cout << anyToString(cell.schema["tbl_name"]) << " " << anyToString(cell.schema["rootpage"]) << " ";
+                std::cout << anyToString(cell.schema["tbl_name"]) << " ";
             }
         }
     }
-
 }
-
-
