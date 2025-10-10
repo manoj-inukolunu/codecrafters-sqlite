@@ -13,7 +13,7 @@
 #include "../common/Sqlite.h"
 
 
-class SelectStatement : SqlStatement {
+class SelectStatement : public SqlStatement {
 public:
     explicit SelectStatement(StatementType type) : SqlStatement(type) {
     }
@@ -21,7 +21,7 @@ public:
     std::optional<bool> distinct;
     std::optional<bool> all;
 
-    Table fromTable;
+    std::shared_ptr<Table> fromTable;
 
     std::optional<std::shared_ptr<ParsedExpression>> whereClause;
     std::optional<ParsedExpression> havingClause;

@@ -7,11 +7,11 @@
 
 #include "catch_amalgamated.hpp"
 #include "SQLiteLexer.h"
-#include "SQLitePrinter.hpp"
+#include "SQLiteAstBuilder.hpp"
 
 
 TEST_CASE("Where") {
-    std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow' and name = 'Yellow' and id = 10";
+    std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow'";
 
     antlr4::ANTLRInputStream input(sql);
     SQLiteLexer lexer(&input);
@@ -22,7 +22,14 @@ TEST_CASE("Where") {
 
     SqliteVisitor v;
 
-    std::any node = v.visit(tree);
+    auto node = std::any_cast<std::shared_ptr<SelectStatement>>(v.visit(tree));
+
+    std::cout << statementTypeToString(node->statementType) << std::endl;
+
+    if (node->whereClause) {
+        std::shared_ptr<ParsedExpression> where = node->whereClause.value();
+        std::cout << where->left->value << " " << where->right->value << std::endl;
+    };
 
     std::cout << "Testing " << std::endl;
 }

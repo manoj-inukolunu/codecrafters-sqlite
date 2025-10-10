@@ -9,7 +9,7 @@
 #include "antlr4-runtime.h"
 #include "gen_sqlite/SQLiteLexer.h"
 #include "gen_sqlite/SQLiteParser.h"
-#include "SQLitePrinter.hpp"
+#include "SQLiteAstBuilder.hpp"
 
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
 static const int CELL_OFFSET = 3;

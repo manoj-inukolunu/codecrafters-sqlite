@@ -303,7 +303,19 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitTable_or_subquery(SQLiteParser::Table_or_subqueryContext *ctx) override {
+  virtual std::any visitTableAliasIndex(SQLiteParser::TableAliasIndexContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTableFunction(SQLiteParser::TableFunctionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTableOrJoin(SQLiteParser::TableOrJoinContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitSubquery(SQLiteParser::SubqueryContext *ctx) override {
     return visitChildren(ctx);
   }
 

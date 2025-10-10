@@ -433,12 +433,12 @@ table_or_subquery: (
             INDEXED_ BY_ index_name
             | NOT_ INDEXED_
         )?
-    )
+    ) #tableAliasIndex
     | (schema_name DOT)? table_function_name OPEN_PAR expr (COMMA expr)* CLOSE_PAR (
         AS_? table_alias
-    )?
-    | OPEN_PAR (table_or_subquery (COMMA table_or_subquery)* | join_clause) CLOSE_PAR
-    | OPEN_PAR select_stmt CLOSE_PAR (AS_? table_alias)?
+    )? #tableFunction
+    | OPEN_PAR (table_or_subquery (COMMA table_or_subquery)* | join_clause) CLOSE_PAR   #tableOrJoin
+    | OPEN_PAR select_stmt CLOSE_PAR (AS_? table_alias)?  #subquery
 ;
 
 result_column:

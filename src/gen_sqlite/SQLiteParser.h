@@ -1810,7 +1810,56 @@ public:
   class  Table_or_subqueryContext : public antlr4::ParserRuleContext {
   public:
     Table_or_subqueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    Table_or_subqueryContext() = default;
+    void copyFrom(Table_or_subqueryContext *context);
+    using antlr4::ParserRuleContext::copyFrom;
+
     virtual size_t getRuleIndex() const override;
+
+   
+  };
+
+  class  SubqueryContext : public Table_or_subqueryContext {
+  public:
+    SubqueryContext(Table_or_subqueryContext *ctx);
+
+    antlr4::tree::TerminalNode *OPEN_PAR();
+    Select_stmtContext *select_stmt();
+    antlr4::tree::TerminalNode *CLOSE_PAR();
+    Table_aliasContext *table_alias();
+    antlr4::tree::TerminalNode *AS_();
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  TableFunctionContext : public Table_or_subqueryContext {
+  public:
+    TableFunctionContext(Table_or_subqueryContext *ctx);
+
+    Table_function_nameContext *table_function_name();
+    antlr4::tree::TerminalNode *OPEN_PAR();
+    std::vector<ExprContext *> expr();
+    ExprContext* expr(size_t i);
+    antlr4::tree::TerminalNode *CLOSE_PAR();
+    Schema_nameContext *schema_name();
+    antlr4::tree::TerminalNode *DOT();
+    std::vector<antlr4::tree::TerminalNode *> COMMA();
+    antlr4::tree::TerminalNode* COMMA(size_t i);
+    Table_aliasContext *table_alias();
+    antlr4::tree::TerminalNode *AS_();
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  class  TableAliasIndexContext : public Table_or_subqueryContext {
+  public:
+    TableAliasIndexContext(Table_or_subqueryContext *ctx);
+
     Table_nameContext *table_name();
     Schema_nameContext *schema_name();
     antlr4::tree::TerminalNode *DOT();
@@ -1820,23 +1869,27 @@ public:
     Index_nameContext *index_name();
     antlr4::tree::TerminalNode *NOT_();
     antlr4::tree::TerminalNode *AS_();
-    Table_function_nameContext *table_function_name();
-    antlr4::tree::TerminalNode *OPEN_PAR();
-    std::vector<ExprContext *> expr();
-    ExprContext* expr(size_t i);
-    antlr4::tree::TerminalNode *CLOSE_PAR();
-    std::vector<antlr4::tree::TerminalNode *> COMMA();
-    antlr4::tree::TerminalNode* COMMA(size_t i);
-    std::vector<Table_or_subqueryContext *> table_or_subquery();
-    Table_or_subqueryContext* table_or_subquery(size_t i);
-    Join_clauseContext *join_clause();
-    Select_stmtContext *select_stmt();
-
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
+  };
+
+  class  TableOrJoinContext : public Table_or_subqueryContext {
+  public:
+    TableOrJoinContext(Table_or_subqueryContext *ctx);
+
+    antlr4::tree::TerminalNode *OPEN_PAR();
+    antlr4::tree::TerminalNode *CLOSE_PAR();
+    std::vector<Table_or_subqueryContext *> table_or_subquery();
+    Table_or_subqueryContext* table_or_subquery(size_t i);
+    Join_clauseContext *join_clause();
+    std::vector<antlr4::tree::TerminalNode *> COMMA();
+    antlr4::tree::TerminalNode* COMMA(size_t i);
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
   Table_or_subqueryContext* table_or_subquery();

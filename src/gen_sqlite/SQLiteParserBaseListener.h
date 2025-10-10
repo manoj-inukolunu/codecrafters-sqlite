@@ -232,8 +232,17 @@ public:
   virtual void enterCompound_select_stmt(SQLiteParser::Compound_select_stmtContext * /*ctx*/) override { }
   virtual void exitCompound_select_stmt(SQLiteParser::Compound_select_stmtContext * /*ctx*/) override { }
 
-  virtual void enterTable_or_subquery(SQLiteParser::Table_or_subqueryContext * /*ctx*/) override { }
-  virtual void exitTable_or_subquery(SQLiteParser::Table_or_subqueryContext * /*ctx*/) override { }
+  virtual void enterTableAliasIndex(SQLiteParser::TableAliasIndexContext * /*ctx*/) override { }
+  virtual void exitTableAliasIndex(SQLiteParser::TableAliasIndexContext * /*ctx*/) override { }
+
+  virtual void enterTableFunction(SQLiteParser::TableFunctionContext * /*ctx*/) override { }
+  virtual void exitTableFunction(SQLiteParser::TableFunctionContext * /*ctx*/) override { }
+
+  virtual void enterTableOrJoin(SQLiteParser::TableOrJoinContext * /*ctx*/) override { }
+  virtual void exitTableOrJoin(SQLiteParser::TableOrJoinContext * /*ctx*/) override { }
+
+  virtual void enterSubquery(SQLiteParser::SubqueryContext * /*ctx*/) override { }
+  virtual void exitSubquery(SQLiteParser::SubqueryContext * /*ctx*/) override { }
 
   virtual void enterResult_column(SQLiteParser::Result_columnContext * /*ctx*/) override { }
   virtual void exitResult_column(SQLiteParser::Result_columnContext * /*ctx*/) override { }

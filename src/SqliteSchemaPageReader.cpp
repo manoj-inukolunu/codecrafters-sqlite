@@ -11,7 +11,7 @@
 #include "ANTLRInputStream.h"
 #include "SQLiteLexer.h"
 #include "SQLiteParser.h"
-#include "SQLitePrinter.hpp"
+#include "SQLiteAstBuilder.hpp"
 
 
 SqliteSchemaPageReader::SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile) : dbFile(dbFile),
