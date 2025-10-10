@@ -11,7 +11,7 @@
 
 
 TEST_CASE("Where") {
-    std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow'";
+    std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow' and name = 'Yellow' and id = 10";
 
     antlr4::ANTLRInputStream input(sql);
     SQLiteLexer lexer(&input);
@@ -23,6 +23,8 @@ TEST_CASE("Where") {
     SqliteVisitor v;
 
     std::any node = v.visit(tree);
+
+    std::cout << "Testing " << std::endl;
 }
 
 TEST_CASE("smoke") {

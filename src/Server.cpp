@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
         SqliteVisitor v1;
         v1.visit(tr);
 
-        std::cout << v1.statementTypeToString() << std::endl;
+        /*std::cout << v1.statementTypeToString() << std::endl;*/
 
         SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
     }

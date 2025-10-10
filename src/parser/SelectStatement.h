@@ -23,7 +23,7 @@ public:
 
     Table fromTable;
 
-    std::optional<ParsedExpression> whereClause;
+    std::optional<std::shared_ptr<ParsedExpression>> whereClause;
     std::optional<ParsedExpression> havingClause;
     std::vector<ParsedExpression> groups;
 };

@@ -23,6 +23,51 @@ public:
     bool selectQuery = false;
 
 
+    std::any visitAndExpr(SQLiteParser::AndExprContext* context) override {
+        std::cout << context->expr().size() << std::endl;
+
+        std::shared_ptr<ParsedExpression> left = std::any_cast<std::shared_ptr<ParsedExpression>>(visit(context->expr()[0]));
+
+        std::shared_ptr<ParsedExpression> right = std::any_cast<std::shared_ptr<ParsedExpression>>(visit(context->expr()[1]));
+
+
+        auto expression = std::make_shared<ParsedExpression>("AND");
+        expression.get()->left = std::move(left);
+        expression.get()->right = std::move(right);
+
+        return expression;
+    }
+
+    std::any visitEqualityExpr(SQLiteParser::EqualityExprContext* context) override {
+        std::any data = visit(context->expr()[0]);
+        std::shared_ptr<ParsedExpression> left = std::any_cast<std::shared_ptr<ParsedExpression>>(data);
+
+        std::shared_ptr<ParsedExpression> right = std::any_cast<std::shared_ptr<ParsedExpression>>(visit(context->expr()[1]));
+
+        auto expression = std::make_shared<ParsedExpression>("ASSIGN");
+        expression.get()->left = std::move(left);
+        expression.get()->right = std::move(right);
+        return expression;
+    }
+
+    std::any visitColumn_name(SQLiteParser::Column_nameContext* context) override {
+        auto expression = std::make_shared<ParsedExpression>("COLUMN");
+        expression.get()->value = context->getText();
+        return expression;
+    }
+
+    std::any visitLiteralExpr(SQLiteParser::LiteralExprContext* context) override {
+        auto expression = std::make_shared<ParsedExpression>("LITERAL");
+        expression.get()->value = context->getText();
+        return expression;
+    }
+
+    std::any visitQualifiedColunExpr(SQLiteParser::QualifiedColunExprContext* context) override {
+        auto expression = std::make_shared<ParsedExpression>("QualifiedColumn");
+        expression.get()->value = context->getText();
+        return expression;
+    }
+
     std::any visitSchema_name(SQLiteParser::Schema_nameContext* context) override {
         context->any_name()->getText();
 
@@ -49,7 +94,12 @@ public:
         if (statement.type() == typeid(CreateTableStatement)) {
             return std::any_cast<CreateTableStatement>(statement);
         }
-        throw std::runtime_error("Parsing failed only create table statement is implemented");
+        if (statement.type() == typeid(SelectStatement)) {
+            SelectStatement stt = std::any_cast<SelectStatement>(statement);
+            return stt;
+        }
+        // throw std::runtime_error("Parsing failed only create table statement is implemented");
+        return visitChildren(context);
     }
 
     std::any visitSql_stmt_list(SQLiteParser::Sql_stmt_listContext* context) override {
@@ -62,7 +112,8 @@ public:
             return std::any_cast<CreateTableStatement>(statement);
         }
         if (statement.type() == typeid(SelectStatement)) {
-            return std::any_cast<SelectStatement>(statement);
+            SelectStatement stt = std::any_cast<SelectStatement>(statement);
+            return stt;
         }
         throw std::runtime_error("Parsing failed only create table statement is implemented");
     }
@@ -88,8 +139,9 @@ public:
 
         if (context->whereExpr) {
             std::any whereClause = visit(context->whereExpr);
+            statement.whereClause = std::move(std::any_cast<std::shared_ptr<ParsedExpression>>(whereClause));
         }
-        return statement;
+        return &statement;
     }
 
     std::any visitTable_or_subquery(SQLiteParser::Table_or_subqueryContext* ctx) override {
@@ -143,7 +195,13 @@ public:
         return antlr4::tree::AbstractParseTreeVisitor::visitChildren(ctx);
     }
 
-    std::any visitExpr(SQLiteParser::ExprContext* ctx) override {
+    std::any visitFunctionCallExpr(SQLiteParser::FunctionCallExprContext* context) override {
+        std::cout << context->function_name()->getText() << std::endl;
+
+        return visitChildren(context);
+    }
+
+    /*std::any visitExpr(SQLiteParser::ExprContext* ctx) override {
         if (auto fn = ctx->function_name()) {
             const std::string name = upper(fn->getText()); // e.g., "COUNT"
 
@@ -169,7 +227,7 @@ public:
 
 
         return visitChildren(ctx);
-    }
+    }*/
 
     std::any visitLiteral_value(SQLiteParser::Literal_valueContext* context) override {
         return visitChildren(context);
