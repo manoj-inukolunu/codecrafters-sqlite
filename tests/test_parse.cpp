@@ -8,6 +8,50 @@
 #include "catch_amalgamated.hpp"
 #include "SQLiteLexer.h"
 #include "SQLiteAstBuilder.hpp"
+#include "SqliteFilePageReader.h"
+
+
+static const int PAGE_SIZE_OFFSET = 16;
+
+
+TEST_CASE("Read Page") {
+    std::string sql = "select name from apples";
+    antlr4::ANTLRInputStream input(sql);
+    SQLiteLexer lexer(&input);
+    antlr4::CommonTokenStream tokens(&lexer);
+    SQLiteParser parser(&tokens);
+    auto* tree = parser.parse(); // top-level rule for this grammar
+    SqliteAstBuilder v;
+    auto node = v.visit(tree);
+
+    if (node.type() == typeid(std::shared_ptr<SelectStatement>)) {
+        auto select = std::any_cast<std::shared_ptr<SelectStatement>>(node);
+
+
+        SqliteFilePageReader reader(1, "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
+        reader.buildSchemaTableRows();
+
+        std::string tableName = select->fromTable->tableName;
+
+        REQUIRE(select->fromTable->tableName == "apples");
+
+
+        auto it = std::find_if(reader.tables.begin(), reader.tables.end(),
+                               [tableName](SqliteSchemaTables x) {
+                                   return x.tableName == tableName;
+                               });
+
+        std::cout << "Table " << tableName << " has create SQL " << it->sql << std::endl;
+        std::cout << "Table " << tableName << " has create root page " << it->rootPage << std::endl;
+
+        reader.loadPage(2);
+
+
+        REQUIRE(it->rootPage == 2);
+    } else {
+        throw std::runtime_error("Parsing failed only create table statement is implemented");
+    }
+}
 
 
 TEST_CASE("Where") {
@@ -20,7 +64,7 @@ TEST_CASE("Where") {
 
     auto* tree = parser.parse(); // top-level rule for this grammar
 
-    SqliteVisitor v;
+    SqliteAstBuilder v;
 
     auto node = std::any_cast<std::shared_ptr<SelectStatement>>(v.visit(tree));
 
@@ -59,7 +103,7 @@ CREATE TABLE apples
 
     auto* tree = parser.parse(); // top-level rule for this grammar
 
-    SqliteVisitor v;
+    SqliteAstBuilder v;
     CreateTableStatement statement = std::any_cast<CreateTableStatement>(v.visit(tree));
 
     std::cout << "Table name: " << statement.tableName << std::endl;

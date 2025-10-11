@@ -8,7 +8,7 @@
 #include "parser/SelectStatement.h"
 
 
-class SqliteVisitor : public SQLiteParserBaseVisitor {
+class SqliteAstBuilder : public SQLiteParserBaseVisitor {
 public:
     static inline std::string upper(std::string s) {
         std::transform(s.begin(), s.end(), s.begin(),
@@ -115,7 +115,7 @@ public:
             auto stt = std::any_cast<std::shared_ptr<SelectStatement>>(statement);
             return stt;
         }
-        throw std::runtime_error("Parsing failed only create table statement is implemented");
+        throw std::runtime_error(" visit stmt list Parsing failed only create table statement is implemented");
     }
 
     std::any visitSql_stmt(SQLiteParser::Sql_stmtContext* ctx) override {

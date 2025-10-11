@@ -24,12 +24,9 @@ set(GENERATED
         src/gen_sqlite/SQLiteParser.cpp
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
-        src/CellParser.cpp
         src/catalog/CatalogBuilder.cpp
         src/catalog/CatalogBuilder.h
         src/common/Sqlite.h
-        src/Node.cpp
-        src/Node.h
         src/parser/parser.h
         src/parser/CreateStatement.cpp
         src/parser/SqlStatement.cpp
@@ -68,7 +65,9 @@ target_include_directories(sqlite_grammar PUBLIC gen_sqlite)
 target_link_libraries(sqlite_grammar PUBLIC antlr4_runtime)
 
 # --- Main executable ---
-add_executable(exe ${SOURCE_FILES} ${GENERATED})
+add_executable(exe ${SOURCE_FILES} ${GENERATED}
+        src/SqlitePage.cpp
+        src/SqlitePage.h)
 target_include_directories(exe PRIVATE gen_sqlite)
 target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 
@@ -76,8 +75,11 @@ target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 if (BUILD_TESTS)
     enable_testing()
 
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*/Server\\.cpp$")
+
     # Use Catch2 amalgamated: compile its .cpp OR provide CATCH_CONFIG_MAIN in one file
     add_executable(unit_tests
+            ${SOURCE_FILES} ${GENERATED}
             tests/catch_amalgamated.cpp    # <- preferred (don’t also define CATCH_CONFIG_MAIN)
             tests/test_parse.cpp
             # you can add more test files here
