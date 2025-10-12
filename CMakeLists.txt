@@ -24,8 +24,6 @@ set(GENERATED
         src/gen_sqlite/SQLiteParser.cpp
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
-        src/catalog/CatalogBuilder.cpp
-        src/catalog/CatalogBuilder.h
         src/common/Sqlite.h
         src/parser/parser.h
         src/parser/CreateStatement.cpp
@@ -47,7 +45,6 @@ set(GENERATED
         src/parser/ParsedExpression.h
         src/btree/SqlitePage.cpp
         src/btree/SqlitePage.h
-        src/btree/TableReader.cpp
 )
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS

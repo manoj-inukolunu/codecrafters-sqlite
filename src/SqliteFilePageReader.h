@@ -15,7 +15,6 @@
 #include <map>
 #include <any>
 #include "common/SqliteUtils.h"
-#include "catalog/CatalogBuilder.h"
 
 
 /**

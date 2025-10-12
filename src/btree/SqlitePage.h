@@ -9,6 +9,17 @@
 #include "../common/SqliteUtils.h"
 
 namespace btree{
+    enum class CellType { LEAF_TABLE_CELL };
+
+    struct Cell {
+        CellType cellType;
+        std::uint64_t rowId;
+        std::size_t payloadSize;
+        std::vector<std::tuple<DataType, long, long>> dataFormat;
+        long cellDataOffset;
+    };
+
+
     class SqlitePage {
     public:
         SqlitePage(int size, int number, std::unique_ptr<std::uint8_t[]> buffer)
@@ -27,10 +38,14 @@ namespace btree{
         int cellContentAreaStart;
         int fragmentedFreeBytesInCellContentArea;
         std::vector<long> cellContentOffsets;
+        std::vector<Cell> cells;
 
         int cellPointerArrayStart() const {
             return headerSize(pageType);
         }
+
+        void printAllCellData(Cell cell);
+        void printColumn(Cell cell, int columnIndex) const;
 
     private:
         static constexpr int headerSize(BTreePageType t) noexcept {

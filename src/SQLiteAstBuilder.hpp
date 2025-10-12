@@ -23,7 +23,7 @@ public:
 
 
     std::any visitAndExpr(SQLiteParser::AndExprContext* context) override {
-        std::cout << context->expr().size() << std::endl;
+        std::cerr << context->expr().size() << std::endl;
 
         auto left = std::any_cast<std::shared_ptr<ParsedExpression>>(visit(context->expr()[0]));
 
@@ -219,7 +219,7 @@ public:
     }
 
     std::any visitFunctionCallExpr(SQLiteParser::FunctionCallExprContext* context) override {
-        std::cout << context->function_name()->getText() << std::endl;
+        std::cerr << context->function_name()->getText() << std::endl;
 
         return visitChildren(context);
     }
