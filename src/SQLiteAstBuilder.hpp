@@ -3,7 +3,6 @@
 #include "SQLiteParserBaseVisitor.h"
 #include <iostream>
 
-#include "Node.h"
 #include "parser/CreateTableStatement.h"
 #include "parser/SelectStatement.h"
 

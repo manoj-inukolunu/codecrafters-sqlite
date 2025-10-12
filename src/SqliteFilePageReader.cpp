@@ -14,7 +14,7 @@
 #include "SQLiteAstBuilder.hpp"
 
 
-SqliteFilePageReader::SqliteFilePageReader(int pageNum, const std::string& filePath) : pageNum(pageNum),
+SqliteFilePageReader::SqliteFilePageReader(int pageNum, const std::string& filePath) : currentPage(pageNum),
                                                                                        filePath(filePath) {
     if (pageNum == 0) {
         throw std::runtime_error("Invalid Page Number 0");
@@ -24,8 +24,7 @@ SqliteFilePageReader::SqliteFilePageReader(int pageNum, const std::string& fileP
     loadPage(1);
     pageBegin = 0;
     pageSize = read2Bytes(pageSize, pageBegin + 16, pageCache[0]);
-    pageBegin = static_cast<FileOffset>((pageNum - 1) * pageSize);
-    parseHeader();
+    parseHeader(this->currentPage);
 }
 
 
@@ -56,10 +55,10 @@ uint16_t SqliteFilePageReader::readPageSize() {
 }
 
 
-void SqliteFilePageReader::processCellPointers() {
+void SqliteFilePageReader::processCellPointers(int pageNum) {
     int pageHeaderSize = (this->pageType == LEAF_TABLE_PAGE || this->pageType == LEAF_INDEX_PAGE) ? 8 : 12;
 
-    auto cellPointerStart = std::ifstream::pos_type((pageNum - 1) * pageSize).operator+(pageHeaderSize);
+    auto cellPointerStart = pageHeaderSize;
     if (pageNum == 1) {
         cellPointerStart += 100;
     }
@@ -71,10 +70,10 @@ void SqliteFilePageReader::processCellPointers() {
         cellPointerStart += 2;
         cells.emplace_back(cell);
     }
-    processAllCells();
+    processAllCells(pageNum);
 }
 
-void SqliteFilePageReader::buildCell(SqliteBTreeSchemaCell& cell) {
+void SqliteFilePageReader::buildCell(int pageNum, SqliteBTreeSchemaCell& cell) {
     auto sizeOfRecord = readVarInt(pageSize, cellContentOffsets[cell.cellNumber], pageCache[pageNum - 1]);
     cell.recordSize = sizeOfRecord.first;
     auto rowId = readVarInt(pageSize, sizeOfRecord.second, pageCache[pageNum - 1]);
@@ -100,7 +99,10 @@ void SqliteFilePageReader::buildCell(SqliteBTreeSchemaCell& cell) {
     cell.recordBodyOffset = columnOffSet;
     cell.record.recordColumns = std::move(columns);
 
-    assert(totalsize == sizeOfRecord.first);
+    std::string data = std::format("Total Size {} != Size of Record {}", totalsize, sizeOfRecord.first).c_str();
+    if (totalsize != sizeOfRecord.first) {
+        throw std::runtime_error(data);
+    }
     buildCellBody(cell);
 }
 
@@ -135,15 +137,14 @@ void SqliteFilePageReader::buildCellBody(SqliteBTreeSchemaCell& cell) {
     }
 }
 
-void SqliteFilePageReader::processAllCells() {
-    for (int i = numCellsInPage - 1; i >= 0; i--) {
-        buildCell(cells[i]);
+void SqliteFilePageReader::processAllCells(int pageNum) {
+    for (int i = 0; i < numCellsInPage; i++) {
+        buildCell(pageNum, cells[i]);
     }
 }
 
 
-void SqliteFilePageReader::parseHeader() {
-    auto pageBegin = FileOffset((pageNum - 1) * pageSize);
+void SqliteFilePageReader::parseHeader(int pageNum) {
     if (pageNum == 1) {
         pageBegin += 100;
     }
@@ -181,7 +182,7 @@ void SqliteFilePageReader::parseHeader() {
     if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
         //        this->rightMostPointer = read4Bytes(pageBegin.operator+(8));
     }
-    processCellPointers();
+    processCellPointers(pageNum);
     if (pageNum == 1) {
         buildSqliteSchemaTable();
     }
@@ -193,22 +194,20 @@ std::string anyToString(const std::any& a) {
 
     if (a.type() == typeid(std::string))
         return std::any_cast<std::string>(a);
-    else if (a.type() == typeid(const char*))
+    if (a.type() == typeid(const char*))
         return std::string(std::any_cast<const char*>(a));
-    else if (a.type() == typeid(char*))
+    if (a.type() == typeid(char*))
         return std::string(std::any_cast<char*>(a));
-    else if (a.type() == typeid(int64_t))
+    if (a.type() == typeid(int64_t))
         return std::to_string(std::any_cast<int64_t>(a));
-    else if (a.type() == typeid(double))
+    if (a.type() == typeid(double))
         return std::to_string(std::any_cast<double>(a));
-    else if (a.type() == typeid(float))
+    if (a.type() == typeid(float))
         return std::to_string(std::any_cast<float>(a));
-    else if (a.type() == typeid(bool))
+    if (a.type() == typeid(bool))
         return std::any_cast<bool>(a) ? "true" : "false";
-    else {
-        // fallback: show the type name
-        return std::string("<unhandled type: ") + a.type().name() + ">";
-    }
+    // fallback: show the type name
+    return std::string("<unhandled type: ") + a.type().name() + ">";
 }
 
 /*
@@ -232,7 +231,8 @@ void SqliteFilePageReader::loadPage(int pageNum) {
     auto buffer = std::make_unique<std::uint8_t[]>(pageSize);
     dbFile->seekg((pageNum - 1) * pageSize, std::ios::beg);
     dbFile->read(reinterpret_cast<char*>(buffer.get()), pageSize);
-    pageCache[(pageNum-1)] = std::move(buffer);
+    pageCache[(pageNum - 1)] = std::move(buffer);
+    parseHeader(pageNum);
 }
 
 void SqliteFilePageReader::buildSchemaTableRows() {

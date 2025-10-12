@@ -40,7 +40,7 @@ struct SqliteSchemaTables {
     }
 };
 
-struct SqliteBTreeSchemaCell  {
+struct SqliteBTreeSchemaCell {
     struct RecordHeader {
         varint headerSize;
         std::vector<RecordColumn> recordColumns;
@@ -63,8 +63,8 @@ public:
 
     std::map<int, std::unique_ptr<std::uint8_t[]>> pageCache;
     std::string filePath;
-    //If pageNum == 1 then the first 100 bytes are the database dbFile header
-    int pageNum;
+    //If currentPage == 1 then the first 100 bytes are the database dbFile header
+    int currentPage;
     BTreePageType pageType;
     int firstFreeBlockStart;
     int numCellsInPage;
@@ -95,15 +95,15 @@ private:
 
     void buildCellBody(SqliteBTreeSchemaCell& cell);
 
-    void buildCell(SqliteBTreeSchemaCell& cell);
+    void buildCell(int pageNum, SqliteBTreeSchemaCell& cell);
 
     void buildSqliteSchemaTable();
 
-    void parseHeader();
+    void parseHeader(int pageNum);
 
-    void processCellPointers();
+    void processCellPointers(int pageNum);
 
-    void processAllCells();
+    void processAllCells(int pageNum);
 
     uint16_t readPageSize();
     FileOffset pageBegin;

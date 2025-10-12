@@ -13,6 +13,20 @@
 
 static const int PAGE_SIZE_OFFSET = 16;
 
+TEST_CASE("Read Table"){
+
+// 1. Load root page
+        // 2. Get all cells , each cell is a row
+        // 3. For Each cell
+        //          read datatypes [(datatype),(datatype),(datatype),....]
+        //          read content [(value),(value) , ....]
+        // 4. Apply the schema after reading ,get the column name from the create table statement.
+        // the index of the column is the same as the index of the content.
+
+        SqliteFilePageReader reader(2, "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
+        std::cout << reader.numCellsInPage << std::endl;
+}
+
 
 TEST_CASE("Read Page") {
     std::string sql = "select name from apples";
