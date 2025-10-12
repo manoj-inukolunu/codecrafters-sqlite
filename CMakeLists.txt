@@ -48,6 +48,9 @@ set(GENERATED
         src/parser/BaseTableRef.h
         src/parser/ParsedExpression.cpp
         src/parser/ParsedExpression.h
+        src/btree/SqlitePage.cpp
+        src/btree/SqlitePage.h
+        src/btree/TableReader.cpp
 )
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS

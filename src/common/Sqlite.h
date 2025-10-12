@@ -10,6 +10,7 @@
 
 struct Column {
     DataType type;
+    long length;
     std::string name;
 };
 

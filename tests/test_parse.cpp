@@ -8,7 +8,12 @@
 #include "catch_amalgamated.hpp"
 #include "SQLiteLexer.h"
 #include "SQLiteAstBuilder.hpp"
+#include "btree/SqlitePage.h"
 
+
+TEST_CASE("Read Table") {
+    btree::SqlitePage sqlitePage;
+}
 
 TEST_CASE("Where") {
     std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow'";
