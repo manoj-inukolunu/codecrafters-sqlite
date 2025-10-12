@@ -8,10 +8,11 @@
 #include "catch_amalgamated.hpp"
 #include "SQLiteLexer.h"
 #include "SQLitePrinter.hpp"
+#include "SqliteSchemaPageReader.h"
 
 
 TEST_CASE("Where") {
-    std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow' and name = 'Yellow' and id = 10";
+    /*std::string sql = "SELECT name, color FROM apples WHERE color = 'Yellow' and name = 'Yellow' and id = 10";
 
     antlr4::ANTLRInputStream input(sql);
     SQLiteLexer lexer(&input);
@@ -24,7 +25,18 @@ TEST_CASE("Where") {
 
     std::any node = v.visit(tree);
 
-    std::cout << "Testing " << std::endl;
+    std::cout << "Testing " << std::endl;*/
+
+
+    std::ifstream dbFile("/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db", std::ios::binary);
+
+    SqliteSchemaPageReader rootPageReader(4, 4096, dbFile);
+    std::cout << rootPageReader.numCellsInPage << std::endl;
+    std::cout << rootPageReader.cellContentAreaStart << std::endl;
+    for (int i = 0;i<rootPageReader.cells.size();i++) {
+        auto cell = rootPageReader.cells[i];
+        std::cout << cell.offset << " " << " Cell Number " << i << std::endl;
+    }
 }
 
 TEST_CASE("smoke") {

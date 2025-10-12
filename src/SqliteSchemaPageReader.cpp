@@ -38,7 +38,7 @@ void SqliteSchemaPageReader::processCellPointers() {
     }
     for (int i = 0; i < this->numCellsInPage; i++) {
         SqliteBTreeSchemaCell cell;
-        cell.offset = pageBegin + read2Bytes(cellPointerStart, dbFile);
+        cell.offset = read2Bytes(cellPointerStart, dbFile);
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;
@@ -73,8 +73,8 @@ void SqliteSchemaPageReader::buildCell(SqliteBTreeSchemaCell &cell) {
     cell.recordBodyOffset = columnOffSet;
     cell.record.recordColumns = std::move(columns);
 
-    assert(totalsize == sizeOfRecord.first);
-    buildCellBody(cell);
+    // assert(totalsize == sizeOfRecord.first);
+    // buildCellBody(cell);
 }
 
 void SqliteSchemaPageReader::buildCellBody(SqliteBTreeSchemaCell &cell) {

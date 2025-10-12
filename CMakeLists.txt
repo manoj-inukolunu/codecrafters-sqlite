@@ -76,8 +76,11 @@ target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 if (BUILD_TESTS)
     enable_testing()
 
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*/Server\\.cpp$")
+
     # Use Catch2 amalgamated: compile its .cpp OR provide CATCH_CONFIG_MAIN in one file
     add_executable(unit_tests
+            ${SOURCE_FILES} ${GENERATED}
             tests/catch_amalgamated.cpp    # <- preferred (don’t also define CATCH_CONFIG_MAIN)
             tests/test_parse.cpp
             # you can add more test files here
