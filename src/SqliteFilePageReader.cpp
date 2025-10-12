@@ -24,6 +24,7 @@ SqliteFilePageReader::SqliteFilePageReader(int pageNum, const std::string& fileP
     loadPage(1);
     pageBegin = 0;
     pageSize = read2Bytes(pageSize, pageBegin + 16, pageCache[0]);
+    loadPage(this->currentPage);
     parseHeader(this->currentPage);
 }
 
@@ -64,7 +65,7 @@ void SqliteFilePageReader::processCellPointers(int pageNum) {
     }
     for (int i = 0; i < this->numCellsInPage; i++) {
         SqliteBTreeSchemaCell cell;
-        cell.offset = pageBegin + read2Bytes(pageSize, cellPointerStart, pageCache[pageNum - 1]);
+        cell.offset = read2Bytes(pageSize, cellPointerStart, pageCache[pageNum - 1]);
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;
@@ -138,7 +139,7 @@ void SqliteFilePageReader::buildCellBody(SqliteBTreeSchemaCell& cell) {
 }
 
 void SqliteFilePageReader::processAllCells(int pageNum) {
-    for (int i = 0; i < numCellsInPage; i++) {
+    for (int i = numCellsInPage - 1; i >= 0; i--) {
         buildCell(pageNum, cells[i]);
     }
 }
@@ -228,11 +229,15 @@ void SqliteFilePageReader::buildSqliteSchemaTable() {
 }
 
 void SqliteFilePageReader::loadPage(int pageNum) {
-    auto buffer = std::make_unique<std::uint8_t[]>(pageSize);
-    dbFile->seekg((pageNum - 1) * pageSize, std::ios::beg);
-    dbFile->read(reinterpret_cast<char*>(buffer.get()), pageSize);
-    pageCache[(pageNum - 1)] = std::move(buffer);
-    parseHeader(pageNum);
+    if (!pageCache[pageNum]) {
+        auto buffer = std::make_unique<std::uint8_t[]>(pageSize);
+        dbFile->seekg((pageNum - 1) * pageSize, std::ios::beg);
+        dbFile->read(reinterpret_cast<char*>(buffer.get()), pageSize);
+        pageCache[(pageNum - 1)] = std::move(buffer);
+        parseHeader(pageNum);
+    } else {
+        std::cout << "Page " << pageNum << " is already in cache" << std::endl;
+    }
 }
 
 void SqliteFilePageReader::buildSchemaTableRows() {

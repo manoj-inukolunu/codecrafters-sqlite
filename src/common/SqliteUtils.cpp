@@ -31,7 +31,10 @@ int read2Bytes(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::ui
 
 
 int read1Byte(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page) {
-    if (!page || offset >= pageSize)
+    if (!page) {
+        throw std::runtime_error("Page pointer is null");
+    }
+    if (offset >= pageSize)
         throw std::out_of_range("read1Byte: offset out of bounds");
     return page[offset];
 }
@@ -39,7 +42,7 @@ int read1Byte(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uin
 
 std::pair<uint64_t, FileOffset> readVarInt(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page) {
     auto readByte = [&](std::size_t& off) -> uint8_t {
-        int x = read1Byte(pageSize,off, page); // must return 0..255 or throw on error
+        int x = read1Byte(pageSize, off, page); // must return 0..255 or throw on error
         off += 1;
         return static_cast<uint8_t>(x);
     };
