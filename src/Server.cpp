@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "SqliteSchemaPageReader.h"
+#include "SqliteFilePageReader.h"
 
 #include "antlr4-runtime.h"
 #include "gen_sqlite/SQLiteLexer.h"
@@ -58,18 +58,6 @@ int numCellsInFirstPage(const std::string& file_location) {
 }
 
 
-int _main(int args, char** argv) {
-    std::cout << argv[1] << std::endl;
-    std::string location = argv[1] + std::string("/sample.db");
-    int pageSize = file_reader(location);
-    std::ifstream dbFile(location, std::ios::binary);
-    SqliteSchemaPageReader reader(0, pageSize, dbFile);
-
-    std::cout << reader.cellContentAreaStart << std::endl;
-
-    return 0;
-}
-
 int main(int argc, char* argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
@@ -107,9 +95,7 @@ int main(int argc, char* argv[]) {
         break;
     }
     case TABLES: {
-        int pageSize = file_reader(database_file_path);
-        std::ifstream dbFile(database_file_path, std::ios::binary);
-        SqliteSchemaPageReader reader(1, pageSize, dbFile);
+        SqliteFilePageReader reader(1, database_file_path);
         reader.printTableNames();
         break;
     }
@@ -122,7 +108,7 @@ int main(int argc, char* argv[]) {
 
         auto* tree = parser.parse(); // top-level rule for this grammar
 
-        SqliteVisitor v;
+        SqliteAstBuilder v;
         v.visit(tree);
 
         std::string tableName = v.tables[0];
@@ -130,7 +116,7 @@ int main(int argc, char* argv[]) {
 
         int pageSize = file_reader(database_file_path);
         std::ifstream dbFile(database_file_path, std::ios::binary);
-        SqliteSchemaPageReader reader(1, pageSize, dbFile);
+        SqliteFilePageReader reader(1, database_file_path);
         reader.buildSchemaTableRows();
 
         auto it = std::find_if(reader.tables.begin(), reader.tables.end(),
@@ -148,12 +134,10 @@ int main(int argc, char* argv[]) {
 
         auto* tr = par.parse(); // top-level rule for this grammar
 
-        SqliteVisitor v1;
+        SqliteAstBuilder v1;
         v1.visit(tr);
 
-        /*std::cout << v1.statementTypeToString() << std::endl;*/
-
-        SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
+        SqliteFilePageReader rootPageReader(it->rootPage, database_file_path);
     }
     return 0;
 }

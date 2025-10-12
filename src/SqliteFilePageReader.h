@@ -22,7 +22,9 @@
  * Schema Page is the first page of the file
  */
 
-#include "SqlitePageReader.h"
+#include <memory>
+
+#include "SqliteFilePageReader.h"
 
 
 struct SqliteSchemaTables {
@@ -34,11 +36,11 @@ struct SqliteSchemaTables {
 
     void toString() const {
         std::cout << "SqliteObject Name " << tableName << " type " << type << " sql " << sql << " rootPage " << rootPage
-                  << " name " << name << std::endl;
+            << " name " << name << std::endl;
     }
 };
 
-struct SqliteBTreeSchemaCell : SqlitePageCell {
+struct SqliteBTreeSchemaCell  {
     struct RecordHeader {
         varint headerSize;
         std::vector<RecordColumn> recordColumns;
@@ -55,16 +57,14 @@ struct SqliteBTreeSchemaCell : SqlitePageCell {
 };
 
 
-class SqliteSchemaPageReader {
+class SqliteFilePageReader {
 public:
-    SqliteSchemaPageReader(int pageNum, int pageSize, std::ifstream &dbFile);
+    SqliteFilePageReader(int pageNum, const std::string& filePath);
 
-    //unnecessary but just in case for clarity of the reader.
+    std::map<int, std::unique_ptr<std::uint8_t[]>> pageCache;
+    std::string filePath;
     //If pageNum == 1 then the first 100 bytes are the database dbFile header
     int pageNum;
-    //unnecessary but just in case for clarity of the reader
-    int pageSize;
-    int pageOffset;
     BTreePageType pageType;
     int firstFreeBlockStart;
     int numCellsInPage;
@@ -77,32 +77,35 @@ public:
     std::vector<SqliteSchemaTables> tables;
 
     std::vector<FileOffset> cellContentOffsets;
-    // The database dbFile
-    std::ifstream &dbFile;
-
-    void processCellPointers();
-
-    void processAllCells();
 
     void printTableNames();
 
     void buildSchemaTableRows();
 
+    void loadPage(int pageNum);
+
 private:
+    // The database dbFile
+    std::unique_ptr<std::ifstream> dbFile;
+    uint16_t pageSize;
 
     std::vector<std::string> tableNames;
     std::vector<std::pair<FileOffset, RecordColumn>> recordDataOffsets;
 
 
-    void buildCellBody(SqliteBTreeSchemaCell &cell);
+    void buildCellBody(SqliteBTreeSchemaCell& cell);
 
-    void buildCell(SqliteBTreeSchemaCell &cell);
+    void buildCell(SqliteBTreeSchemaCell& cell);
 
     void buildSqliteSchemaTable();
 
-    void buildCatalog();
     void parseHeader();
 
+    void processCellPointers();
+
+    void processAllCells();
+
+    uint16_t readPageSize();
     FileOffset pageBegin;
 };
 
