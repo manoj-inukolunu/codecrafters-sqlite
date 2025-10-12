@@ -9,11 +9,28 @@
 #include "SQLiteLexer.h"
 #include "SQLiteAstBuilder.hpp"
 #include "SqliteFilePageReader.h"
+#include "btree/SqlitePage.h"
 
 
-static const int PAGE_SIZE_OFFSET = 16;
+uint16_t readBigEndian16(std::ifstream& file, std::streampos offset) {
+    uint8_t bytes[2];
+    file.seekg(offset, std::ios::beg);
+    file.read(reinterpret_cast<char*>(bytes), 2);
+    return (static_cast<uint16_t>(bytes[0]) << 8) |
+        (static_cast<uint16_t>(bytes[1]));
+}
 
-TEST_CASE("Read Table") {
+uint32_t readBigEndian32(std::ifstream& file, std::streampos offset) {
+    uint8_t bytes[4];
+    file.seekg(offset, std::ios::beg);
+    file.read(reinterpret_cast<char*>(bytes), 4);
+    return (static_cast<uint32_t>(bytes[0]) << 24) |
+        (static_cast<uint32_t>(bytes[1]) << 16) |
+        (static_cast<uint32_t>(bytes[2]) << 8) |
+        (static_cast<uint32_t>(bytes[3]));
+}
+
+TEST_CASE("Sqlite Page Test") {
     // 1. Load root page
     // 2. Get all cells , each cell is a row
     // 3. For Each cell
@@ -22,11 +39,35 @@ TEST_CASE("Read Table") {
     // 4. Apply the schema after reading ,get the column name from the create table statement.
     // the index of the column is the same as the index of the content.
 
-    SqliteFilePageReader reader(4, "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
-    std::cout << reader.numCellsInPage << std::endl;
+    std::ifstream stream("/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/test.db");
+
+    uint16_t pageSize = readBigEndian16(stream, 16);
+    if (pageSize == 1)
+        pageSize = 65536; // SQLite quirk: 1 means 65536
 
 
+    uint32_t totalPages = readBigEndian32(stream, 28);
+    std::cout << "Total pages: " << totalPages << "\n";
+    std::cout << "Page size: " << pageSize << " bytes\n";
 
+
+    if (!stream) {
+        throw std::runtime_error("Cannot open SQLite file");
+    }
+    for (int i = 1; i < totalPages; i++) {
+        try {
+            int pageNum = i;
+            stream.seekg(pageNum * 4096, std::ios::beg);
+            auto buffer = std::make_unique<uint8_t[]>(4096);
+            stream.read(reinterpret_cast<char*>(buffer.get()), 4096);
+
+            btree::SqlitePage page(4096, pageNum + 1, std::move(buffer));
+
+            std::cout << page.numCellsInPage << std::endl;
+        } catch (std::exception& e) {
+            std::cerr << e.what() << " " << i << std::endl;
+        }
+    }
 }
 
 
