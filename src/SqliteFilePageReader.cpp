@@ -66,6 +66,7 @@ void SqliteFilePageReader::processCellPointers(int pageNum) {
     for (int i = 0; i < this->numCellsInPage; i++) {
         SqliteBTreeSchemaCell cell;
         cell.offset = read2Bytes(pageSize, cellPointerStart, pageCache[pageNum - 1]);
+        std::cout << cell.offset << std::endl;
         cell.cellNumber = i;
         cellContentOffsets.emplace_back(cell.offset);
         cellPointerStart += 2;

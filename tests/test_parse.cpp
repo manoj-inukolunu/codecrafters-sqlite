@@ -22,7 +22,7 @@ TEST_CASE("Read Table") {
     // 4. Apply the schema after reading ,get the column name from the create table statement.
     // the index of the column is the same as the index of the content.
 
-    SqliteFilePageReader reader(2, "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
+    SqliteFilePageReader reader(4, "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
     std::cout << reader.numCellsInPage << std::endl;
 
 
