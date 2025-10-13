@@ -50,7 +50,7 @@ uint16_t SqliteFilePageReader::readPageSize() {
 
     // SQLite special case: value 1 means 65536
     if (pageSize == 1)
-        pageSize = (uint16_t) 65536;
+        pageSize = static_cast<uint32_t>(65536);
 
     return pageSize;
 }
