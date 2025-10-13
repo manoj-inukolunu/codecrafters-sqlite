@@ -221,7 +221,7 @@ int main(int argc, char* argv[]) {
             }
             for (int cellRow = 0; cellRow < cellRows.size(); cellRow++) {
                 auto row = cellRows[cellRow];
-                bool shouldPrint = false;
+                bool shouldPrint = !select->whereClause.has_value();
                 std::vector<std::string> toPrint;
                 for (int i = 0; i < select->fromTable->columns.size(); i++) {
                     std::string currColName = select->fromTable->columns[i].name;
