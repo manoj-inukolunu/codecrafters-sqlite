@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
     default:
         std::string sql = command;
         auto node = parseSQL(sql);
-        std::ifstream stream("/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
+        std::ifstream stream(database_file_path);
 
         uint16_t pageSize = readBigEndian16(stream, 16);
         if (pageSize == 1)
