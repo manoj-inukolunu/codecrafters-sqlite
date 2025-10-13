@@ -205,8 +205,6 @@ int main(int argc, char* argv[]) {
                     columnMap[createTable.columns[i]->name] = {i, createTable.columns[i]};
                 }
             }
-            int colOrder = columnMap[select->fromTable->columns[0].name].first;
-
             //print rootpage for table
             LOG_INFO("Root Page " << rootPages[select->fromTable->tableName]);
             auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], firstPage.pageSize);
@@ -216,17 +214,31 @@ int main(int argc, char* argv[]) {
                 cols.emplace_back(columnMap[col.name].first);
             }
 
-            std::vector<std::vector<std::string>> cellValues;
+            std::vector<std::vector<std::string>> cellRows;
             for (auto cell : tablePage.cells) {
                 std::vector<std::string> currentRow = tablePage.collectColumnData(cell);
-                cellValues.emplace_back(currentRow);
+                cellRows.emplace_back(currentRow);
             }
-            for (int j = 0; j < cellValues.size(); j++) {
+            for (int cellRow = 0; cellRow < cellRows.size(); cellRow++) {
+                auto row = cellRows[cellRow];
                 for (int i = 0; i < select->fromTable->columns.size(); i++) {
-                    int idx = columnMap[select->fromTable->columns[i].name].first;
-                    std::cout << cellValues[j][idx];
-                    if (i != select->fromTable->columns.size() - 1) {
-                        std::cout << "|";
+                    std::string currColName = select->fromTable->columns[i].name;
+                    bool shouldFilter = false;
+                    if (select->whereClause.has_value()) {
+                        std::string colName = select->whereClause->get()->left->value;
+                        std::string colValue = select->whereClause->get()->right->value;
+                        int colId = columnMap[currColName].first;
+                        std::string currColValue = "'" + row[colId] + "'";
+                        if (colName == currColName && currColValue == colValue) {
+                            shouldFilter = true;
+                        }
+                    }
+                    if (shouldFilter) {
+                        int colId = columnMap[currColName].first;
+                        std::cout << row[colId];
+                        if (i != select->fromTable->columns.size() - 1) {
+                            std::cout << "|";
+                        }
                     }
                 }
                 std::cout << std::endl;
