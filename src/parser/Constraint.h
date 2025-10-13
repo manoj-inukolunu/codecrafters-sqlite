@@ -19,10 +19,10 @@ public:
     }
 
     ConstraintType constraintType;
+    bool primary;
+    bool autoIncrement;
+    bool unique;
     std::string name;
-
-
-
 };
 
 

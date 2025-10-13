@@ -61,7 +61,7 @@ TEST_CASE("Read Data From a Single Column") {
     std::cerr.rdbuf(std::cerr.rdbuf());
     std::string sql = "select id from oranges";
     auto node = parseSQL(sql);
-    std::ifstream stream("/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
+    std::ifstream stream("/mnt/c/Users/Manoj/Projects/code-crafters/codecrafters-sqlite-cpp/sample.db");
 
     uint16_t pageSize = readBigEndian16(stream, 16);
     if (pageSize == 1)
@@ -129,6 +129,7 @@ TEST_CASE("Read Data From a Single Column") {
         REQUIRE(rootPages[select->fromTable->tableName] == 4);
         auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
 
+        std::cerr << "Col Order :" << colOrder << std::endl;
         for (auto cell : tablePage.cells) {
             if (isPk(columnMap[select->fromTable->columns[0].name].second.constraints)) {
                 //primary key is always the rowid

@@ -22,7 +22,7 @@ public:
     std::optional<std::string> schemaName;
     // NO Support now
     std::optional<bool> isCreateAsSelect;
-    std::vector<ColumnDefinition> columns;
+    std::vector<std::shared_ptr<ColumnDefinition>> columns;
     std::optional<bool> withoutRowId;
 };
 
