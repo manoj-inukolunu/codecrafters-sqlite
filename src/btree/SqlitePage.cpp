@@ -7,6 +7,10 @@
 #include <iostream>
 
 namespace btree{
+    void SqlitePage::printId(Cell cell) {
+        std::cerr << cell.rowId << std::endl;
+    }
+
     void SqlitePage::printColumn(Cell cell, int columnIndex) const {
         size_t offset = cell.cellDataOffset;
         for (int i = 0; i < cell.dataFormat.size(); i++) {

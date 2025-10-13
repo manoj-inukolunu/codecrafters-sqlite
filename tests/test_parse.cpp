@@ -52,7 +52,7 @@ TEST_CASE("Read Data From a Single Column") {
     std::cerr.rdbuf(std::cerr.rdbuf());
     std::string sql = "select id from oranges";
     auto node = parseSQL(sql);
-    std::ifstream stream("/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
+    std::ifstream stream("/Users/minukolunu/Projects/code-crafters/codecrafters-sqlite-cpp/sample.db");
 
     uint16_t pageSize = readBigEndian16(stream, 16);
     if (pageSize == 1)
@@ -109,7 +109,7 @@ TEST_CASE("Read Data From a Single Column") {
             std::cerr << "Table name: " << createTable.tableName << std::endl;
 
             for (int i = 0; i < createTable.columns.size(); i++) {
-                columnMap[createTable.columns[i].name] = i;
+                columnMap[createTable.columns[i]->name] = i;
             }
             REQUIRE(createTable.tableName == "oranges");
         }
@@ -120,6 +120,7 @@ TEST_CASE("Read Data From a Single Column") {
         REQUIRE(rootPages[select->fromTable->tableName] == 4);
         auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
 
+        std::cerr << "Col Order :" << colOrder << std::endl;
         for (auto cell : tablePage.cells) {
             tablePage.printColumn(cell, colOrder);
         }

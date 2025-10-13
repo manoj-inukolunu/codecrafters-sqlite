@@ -175,12 +175,32 @@ public:
 
 
     std::any visitColumn_constraint(SQLiteParser::Column_constraintContext* ctx) override {
-        return visitChildren(ctx);
+        auto constraint = std::make_shared<Constraint>(ConstraintType::COLUMN_CONSTRAINT);
+        constraint->constraintType = ConstraintType::COLUMN_CONSTRAINT;
+        if (ctx->AUTOINCREMENT_()) {
+            constraint->autoIncrement = true;
+        }
+        return constraint;
     }
 
     std::any visitColumn_def(SQLiteParser::Column_defContext* ctx) override {
-        ColumnDefinition definition(ctx->column_name()->getText(), dataTypeFromString(ctx->type_name()->getText()));
+        auto definition = std::make_shared<ColumnDefinition>(ctx->column_name()->getText(), dataTypeFromString(ctx->type_name()->getText()));
+        for (auto constraint : ctx->column_constraint()) {
+            definition->constraints.emplace_back(std::any_cast<std::shared_ptr<Constraint>>(visit(constraint)));
+        }
         return definition;
+    }
+
+    std::any visitTable_constraint(SQLiteParser::Table_constraintContext* context) override {
+        auto constraint = std::make_shared<Constraint>(ConstraintType::TABLE_CONSTRAINT);
+        if (context->PRIMARY_()) {
+            constraint->constraintType = ConstraintType::TABLE_CONSTRAINT;
+            constraint->primary = true;
+        }
+        if (context->UNIQUE_()) {
+            constraint->unique = true;
+        }
+        return constraint;
     }
 
     std::any visitCreate_table_stmt(SQLiteParser::Create_table_stmtContext* context) override {
@@ -200,12 +220,11 @@ public:
         createTable.isTemporary = context->TEMP_() || context->TEMPORARY_();
         createTable.withoutRowId = context->WITHOUT_();
 
-        std::vector<ColumnDefinition> columns;
+        std::vector<std::shared_ptr<ColumnDefinition>> columns;
         for (int i = 0; i < ctx.size(); i++) {
-            columns.emplace_back(std::any_cast<ColumnDefinition>(visit(ctx[i])));
+            columns.emplace_back(std::any_cast<std::shared_ptr<ColumnDefinition>>(visit(ctx[i])));
         }
         createTable.columns = columns;
-
         return createTable;
     }
 

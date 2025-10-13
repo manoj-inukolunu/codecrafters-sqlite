@@ -45,6 +45,7 @@ namespace btree{
         }
 
         void printAllCellData(Cell cell);
+        static void printId(Cell cell);
         void printColumn(Cell cell, int columnIndex) const;
 
     private:
