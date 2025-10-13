@@ -206,6 +206,8 @@ public:
     std::any visitCreate_table_stmt(SQLiteParser::Create_table_stmtContext* context) override {
         std::vector<SQLiteParser::Column_defContext*> ctx = context->column_def();
 
+        std::vector<SQLiteParser::Table_constraintContext *> tableConstraints = context->table_constraint();
+
         if (ctx.size() == 0) {
             throw std::runtime_error("No column definition found . There must be columns for creating");
         }
@@ -225,6 +227,11 @@ public:
             columns.emplace_back(std::any_cast<std::shared_ptr<ColumnDefinition>>(visit(ctx[i])));
         }
         createTable.columns = columns;
+
+        for (auto table_constraint_context : tableConstraints) {
+            createTable.tableConstraints.emplace_back(std::any_cast<std::shared_ptr<Constraint>>(visit(table_constraint_context)));
+        }
+
         return createTable;
     }
 

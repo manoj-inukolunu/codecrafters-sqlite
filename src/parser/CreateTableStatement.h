@@ -24,6 +24,7 @@ public:
     std::optional<bool> isCreateAsSelect;
     std::vector<std::shared_ptr<ColumnDefinition>> columns;
     std::optional<bool> withoutRowId;
+    std::vector<std::shared_ptr<Constraint>> tableConstraints;
 };
 
 #endif //SQLITE_STARTER_CPP_CREATESTATEMENT_H

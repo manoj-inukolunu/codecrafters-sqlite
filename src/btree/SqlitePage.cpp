@@ -5,10 +5,11 @@
 #include "SqlitePage.h"
 
 #include <iostream>
+#include "../DebugUtils.h"
 
 namespace btree{
     void SqlitePage::printId(Cell cell) {
-        std::cerr << cell.rowId << std::endl;
+        LOG_DEBUG(cell.rowId);
     }
 
     void SqlitePage::printColumn(Cell cell, int columnIndex) const {
@@ -21,7 +22,7 @@ namespace btree{
             }
             switch (std::get<0>(format)) {
             case TEXT: {
-                std::cerr << " Text Content " << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)) << std::endl;
+                LOG_DEBUG(" Text Content " << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)));
                 break;
             }
             case INT: {
@@ -29,12 +30,12 @@ namespace btree{
                 for (int j = 0; j < std::get<1>(format); ++j) {
                     value = (value << 8) | static_cast<uint64_t>(data[offset + j]);
                 }
-                std::cerr << "Int Content " << value << std::endl;
+                LOG_DEBUG("Int Content " << value);
                 break;
             }
 
             case NULL_TYPE: {
-                std::cerr << "Null Type" << std::endl;
+                LOG_DEBUG("Null Type");
                 break;
             }
 
@@ -55,12 +56,12 @@ namespace btree{
 
 
     void SqlitePage::printAllCellData(Cell cell) {
-        std::cerr << "Cell Row Id " << cell.rowId << " Payload Size " << cell.payloadSize << std::endl;
+        LOG_DEBUG("Cell Row Id " << cell.rowId << " Payload Size " << cell.payloadSize);
         size_t offset = cell.cellDataOffset;
         for (auto format : cell.dataFormat) {
             switch (std::get<0>(format)) {
             case TEXT: {
-                std::cerr << " Text Content " << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)) << std::endl;
+                LOG_DEBUG(" Text Content "<< std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)));
                 break;
             }
             case INT: {
@@ -68,7 +69,7 @@ namespace btree{
                 for (int i = 0; i < std::get<1>(format); ++i) {
                     value = (value << 8) | static_cast<uint64_t>(data[offset + i]);
                 }
-                std::cerr << "Int Content " << value << std::endl;
+                LOG_DEBUG("Int Content "<< value);
                 break;
             }
 
@@ -100,15 +101,15 @@ namespace btree{
         for (int i = 0; i < numCellsInPage; i++) {
             int offset = read2Bytes(pageSize, cellPointerStart + (i * 2), data);
             cellContentOffsets.push_back(offset);
-            std::cerr << "Cell Content Offset " << offset << " - Cell Number " << i << std::endl;
+            LOG_DEBUG("Cell Content Offset " << offset << " - Cell Number " << i);
         }
 
-        std::cerr << "Processed Cell Pointers " << std::endl;
+        LOG_DEBUG("Processed Cell Pointers");
     }
 
     void SqlitePage::processAllCells() {
         for (int i = 0; i < numCellsInPage; i++) {
-            std::cerr << "Processing cell " << i << " at offset " << cellContentOffsets[i] << std::endl;
+            LOG_DEBUG("Processing cell " << i << " at offset " << cellContentOffsets[i]);
             buildCell(i);
         }
     }
@@ -119,12 +120,12 @@ namespace btree{
         auto sizeOfRecord = readVarInt(pageSize, cellContentOffsets[cellNumber], data);
         cell.payloadSize = sizeOfRecord.first;
 
-        std::cerr << "Record Size " << sizeOfRecord.first << std::endl;
+        LOG_DEBUG("Record Size " << sizeOfRecord.first);
         auto rowId = readVarInt(pageSize, sizeOfRecord.second, data);
-        std::cerr << " Row Id " << rowId.first << std::endl;
+        LOG_DEBUG(" Row Id " << rowId.first);
         cell.rowId = rowId.first;
         auto recordHeaderSize = readVarInt(pageSize, rowId.second, data);
-        std::cerr << " Record Header Size " << recordHeaderSize.first << std::endl;
+        LOG_DEBUG(" Record Header Size " << recordHeaderSize.first);
 
         long totalsize = recordHeaderSize.first;
         long offset = recordHeaderSize.second;
@@ -133,11 +134,11 @@ namespace btree{
         while (totalsize < sizeOfRecord.first) {
             std::pair<uint64_t, FileOffset> payload = readVarInt(pageSize, offset, data);
             totalsize += contentSize(payload.first);
-            std::cerr << "  Payload Serial Type " << payload.first << " Content Size " << contentSize(payload.first) << " dataType " << dataTypeStr(dataType(payload.first)) << std::endl;
+            LOG_DEBUG("  Payload Serial Type " << payload.first << " Content Size " << contentSize(payload.first) << " dataType " << dataTypeStr(dataType(payload.first)));
             auto tuple = std::make_tuple(dataType(payload.first), contentSize(payload.first), offset);
             dataFormat.emplace_back(tuple);
             if (dataType(payload.first) == INT) {
-                std::cerr << " Content Size in bytes =  " << static_cast<int>(contentSize(payload.first)) << std::endl;
+                LOG_DEBUG(" Content Size in bytes =  " << static_cast<int>(contentSize(payload.first)));
             }
             offset = payload.second;
         }
@@ -152,7 +153,7 @@ namespace btree{
         if (totalsize != sizeOfRecord.first) {
             throw std::runtime_error(error);
         }
-        std::cerr << "All Good " << " Data Offset " << offset << std::endl;
+        LOG_DEBUG("All Good - Data Offset " << offset);
         cells.emplace_back(cell);
     }
 
