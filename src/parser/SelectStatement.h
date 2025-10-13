@@ -20,7 +20,7 @@ public:
 
     std::optional<bool> distinct;
     std::optional<bool> all;
-
+    bool countQuery=false;
     std::shared_ptr<Table> fromTable;
 
     std::optional<std::shared_ptr<ParsedExpression>> whereClause;

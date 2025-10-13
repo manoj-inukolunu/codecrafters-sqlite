@@ -22,6 +22,65 @@ enum Command {
     DBINFO, TABLES, INVALID
 };
 
+btree::SqlitePage loadPage(std::ifstream& stream, int pageNum, int pageSize) {
+    stream.seekg((pageNum - 1) * pageSize, std::ios::beg);
+    auto buffer = std::make_unique<uint8_t[]>(pageSize);
+    stream.read(reinterpret_cast<char*>(buffer.get()), pageSize);
+
+    return btree::SqlitePage(pageSize, pageNum, std::move(buffer));
+}
+
+
+std::map<std::string, int> getTableRootPages(const std::string& databasePath) {
+    std::map<std::string, int> rootPages;
+    std::ifstream stream(databasePath, std::ios::binary);
+
+    if (!stream) {
+        throw std::runtime_error("Cannot open database file: " + databasePath);
+    }
+
+    // Read page size (offset 16, 2 bytes, big-endian)
+    uint16_t pageSize = 0;
+    stream.seekg(16);
+    stream.read(reinterpret_cast<char*>(&pageSize), sizeof(pageSize));
+    pageSize = (pageSize >> 8) | (pageSize << 8); // Convert from big-endian
+
+    if (pageSize == 1) {
+        pageSize = 65536; // SQLite quirk
+    }
+
+    // Load page 1 (schema page)
+    auto page = loadPage(stream, 1, pageSize);
+
+    // Process each cell in the schema page
+    for (const auto& cell : page.cells) {
+        // Get table name (2nd column, index 1)
+        auto tableNameTuple = cell.dataFormat[1];
+        int offset = std::get<2>(tableNameTuple);
+        std::string tableName = std::string(
+            reinterpret_cast<char*>(page.data.get()) + offset,
+            std::get<1>(tableNameTuple)
+        );
+
+        // Skip SQLite internal tables
+        if (tableName.starts_with("sqlite_")) {
+            continue;
+        }
+
+        // Get root page (4th column, index 3)
+        auto rootPageTuple = cell.dataFormat[3];
+        offset = std::get<2>(rootPageTuple);
+        int rootPage = 0;
+        for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
+            rootPage = (rootPage << 8) | static_cast<int>(page.data.get()[offset + i]);
+        }
+
+        rootPages[tableName] = rootPage;
+    }
+
+    return rootPages;
+}
+
 
 int read2Bytes(std::ifstream& file, int offset) {
     file.seekg(offset, std::ios::beg);
@@ -67,14 +126,6 @@ std::any parseSQL(const std::string& sql) {
     auto* tree = parser.parse(); // top-level rule for this grammar
     SqliteAstBuilder v;
     return v.visit(tree);
-}
-
-btree::SqlitePage loadPage(std::ifstream& stream, int pageNum, int pageSize) {
-    stream.seekg((pageNum - 1) * pageSize, std::ios::beg);
-    auto buffer = std::make_unique<uint8_t[]>(pageSize);
-    stream.read(reinterpret_cast<char*>(buffer.get()), pageSize);
-
-    return btree::SqlitePage(pageSize, pageNum, std::move(buffer));
 }
 
 bool isPk(std::vector<std::shared_ptr<Constraint>> constraints) {
@@ -146,28 +197,7 @@ int main(int argc, char* argv[]) {
 
         auto page = loadPage(stream, 1, pageSize);
         std::map<std::string, std::string> tableNames;
-        std::map<std::string, int> rootPages;
-        for (auto cell : page.cells) {
-            std::tuple createSqlTuple = cell.dataFormat[4];
-            int offset = std::get<2>(createSqlTuple);
-            std::string createSql = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(createSqlTuple));
-
-            std::tuple tableNameTuple = cell.dataFormat[1];
-            offset = std::get<2>(tableNameTuple);
-            std::string tableName = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(tableNameTuple));
-            if (!tableName.starts_with("sqlite")) {
-                tableNames[tableName] = createSql;
-            }
-
-            std::tuple rootPageTuple = cell.dataFormat[3];
-            offset = std::get<2>(rootPageTuple);
-            uint64_t value = 0;
-            for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
-                value = (value << 8) | static_cast<uint64_t>(page.data.get()[offset + i]);
-            }
-            rootPages[tableName] = value;
-        }
-
+        std::map<std::string, int> rootPages = getTableRootPages(database_file_path);
 
         //print table names
         for (const auto& [name, sql] : tableNames) {
@@ -176,6 +206,11 @@ int main(int argc, char* argv[]) {
 
         if (node.type() == typeid(std::shared_ptr<SelectStatement>)) {
             auto select = std::any_cast<std::shared_ptr<SelectStatement>>(node);
+            if (select->countQuery) {
+                auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
+                std::cout << tablePage.numCellsInPage << std::endl;
+                return 0;
+            }
             LOG_INFO("Reading Table" << select->fromTable->tableName);
             LOG_INFO("Column Names ");
             int idColumnIndex = -1;

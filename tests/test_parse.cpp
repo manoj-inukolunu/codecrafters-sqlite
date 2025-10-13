@@ -58,6 +58,19 @@ bool isPk(std::vector<std::shared_ptr<Constraint>> constraints) {
     return false;
 }
 
+TEST_CASE("Select Count(*) ") {
+    auto sql = "select count(*) from apples";
+    auto node = parseSQL(sql);
+    if (node.type() == typeid(std::shared_ptr<SelectStatement>)) {
+        auto select = std::any_cast<std::shared_ptr<SelectStatement>>(node);
+        std::string tableName = select->fromTable->tableName;
+        //Find Root Page for Table
+
+
+        REQUIRE(select->countQuery);
+    }
+}
+
 TEST_CASE("Read Data From a Single Column") {
     // Enable logging
     std::string sql = "select name from oranges";

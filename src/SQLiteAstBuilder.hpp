@@ -1,8 +1,11 @@
 #pragma once
 
+#include <complex>
+
 #include "SQLiteParserBaseVisitor.h"
 #include <iostream>
 
+#include "DebugUtils.h"
 #include "parser/CreateTableStatement.h"
 #include "parser/SelectStatement.h"
 
@@ -95,6 +98,9 @@ public:
         }
         if (statement.type() == typeid(std::shared_ptr<SelectStatement>)) {
             auto stt = std::any_cast<std::shared_ptr<SelectStatement>>(statement);
+            if (countStarQuery) {
+                stt->countQuery = true;
+            }
             return stt;
         }
         throw std::runtime_error("Parsing failed only create table statement is implemented");
@@ -112,6 +118,9 @@ public:
 
         if (statement.type() == typeid(std::shared_ptr<SelectStatement>)) {
             auto stt = std::any_cast<std::shared_ptr<SelectStatement>>(statement);
+            if (countStarQuery) {
+                stt->countQuery = true;
+            }
             return stt;
         }
         throw std::runtime_error(" visit stmt list Parsing failed only create table statement is implemented");
@@ -206,7 +215,7 @@ public:
     std::any visitCreate_table_stmt(SQLiteParser::Create_table_stmtContext* context) override {
         std::vector<SQLiteParser::Column_defContext*> ctx = context->column_def();
 
-        std::vector<SQLiteParser::Table_constraintContext *> tableConstraints = context->table_constraint();
+        std::vector<SQLiteParser::Table_constraintContext*> tableConstraints = context->table_constraint();
 
         if (ctx.size() == 0) {
             throw std::runtime_error("No column definition found . There must be columns for creating");
@@ -245,9 +254,12 @@ public:
     }
 
     std::any visitFunctionCallExpr(SQLiteParser::FunctionCallExprContext* context) override {
-        std::cerr << context->function_name()->getText() << std::endl;
-
-        return visitChildren(context);
+        LOG_DEBUG(context->function_name()->getText());
+        auto expression = std::make_shared<ParsedExpression>(context->function_name()->getText());
+        if (context->function_name()->getText() == "count") {
+            countStarQuery = true;
+        }
+        return expression;
     }
 
     /*std::any visitExpr(SQLiteParser::ExprContext* ctx) override {
