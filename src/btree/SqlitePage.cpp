@@ -13,18 +13,15 @@ namespace btree{
         std::cout << cell.rowId << std::endl;
     }
 
-    void SqlitePage::printColumn(Cell cell, int columnIndex) const {
+    std::vector<std::string> SqlitePage::collectColumnData(Cell cell) const {
         size_t offset = cell.cellDataOffset;
+        std::vector<std::string> values;
         for (int i = 0; i < cell.dataFormat.size(); i++) {
             auto format = cell.dataFormat[i];
-            if (i != columnIndex) {
-                offset += std::get<1>(format);
-                continue;
-            }
             switch (std::get<0>(format)) {
             case TEXT: {
                 LOG_DEBUG(" Text Content " << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)));
-                std::cout << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)) << std::endl;
+                values.emplace_back(std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)));
                 break;
             }
             case INT: {
@@ -33,20 +30,23 @@ namespace btree{
                     value = (value << 8) | static_cast<uint64_t>(data[offset + j]);
                 }
                 LOG_DEBUG("Int Content " << value);
-                std::cout << value << std::endl;
+                values.emplace_back(std::to_string(value));
                 break;
             }
 
             case NULL_TYPE: {
                 LOG_DEBUG("Null Type");
+                values.emplace_back(std::to_string(cell.rowId));
                 break;
             }
 
             case BLOB: {
+                throw new std::runtime_error("BLOB is not supported");
                 break;
             }
 
             case REAL: {
+                throw new std::runtime_error("REAL is not supported");
                 break;
             }
 
@@ -55,6 +55,7 @@ namespace btree{
             }
             offset += std::get<1>(format);
         }
+        return values;
     }
 
 

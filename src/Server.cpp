@@ -211,15 +211,25 @@ int main(int argc, char* argv[]) {
             LOG_INFO("Root Page " << rootPages[select->fromTable->tableName]);
             auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], firstPage.pageSize);
 
-            LOG_INFO("Col Order :" << colOrder);
+            std::vector<int> cols;
+            for (auto col : select->fromTable->columns) {
+                cols.emplace_back(columnMap[col.name].first);
+            }
+
+            std::vector<std::vector<std::string>> cellValues;
             for (auto cell : tablePage.cells) {
-                if (isPk(columnMap[select->fromTable->columns[0].name].second->constraints)) {
-                    //primary key is always the rowid
-                    LOG_INFO("Row Id " << cell.rowId);
-                    tablePage.printId(cell);
-                } else {
-                    tablePage.printColumn(cell, colOrder);
+                std::vector<std::string> currentRow = tablePage.collectColumnData(cell);
+                cellValues.emplace_back(currentRow);
+            }
+            for (int j = 0; j < cellValues.size(); j++) {
+                for (int i = 0; i < select->fromTable->columns.size(); i++) {
+                    int idx = columnMap[select->fromTable->columns[i].name].first;
+                    std::cout << cellValues[j][idx];
+                    if (i != select->fromTable->columns.size() - 1) {
+                        std::cout << "|";
+                    }
                 }
+                std::cout << std::endl;
             }
         }
     }

@@ -3,8 +3,6 @@ project(sqlite-starter-cpp)
 
 set(CMAKE_CXX_STANDARD 23)
 option(BUILD_TESTS "Build unit tests" OFF)
-set(CMAKE_UNITY_BUILD ON)
-
 
 # --- ANTLR static runtime (imported) ---
 set(ANTLR4_TAR "${CMAKE_SOURCE_DIR}/ant.tar.gz")
@@ -95,10 +93,4 @@ if (BUILD_TESTS)
 
     # Register with CTest (so CLion’s CTest runner sees it)
     add_test(NAME all-tests COMMAND unit_tests)
-endif ()
-
-set_target_properties(sqlite_grammar PROPERTIES UNITY_BUILD ON)
-set_target_properties(exe PROPERTIES UNITY_BUILD ON)
-if (BUILD_TESTS)
-    set_target_properties(unit_tests PROPERTIES UNITY_BUILD ON)
 endif ()

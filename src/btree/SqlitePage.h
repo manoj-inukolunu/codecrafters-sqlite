@@ -46,7 +46,7 @@ namespace btree{
 
         void printAllCellData(Cell cell);
         static void printId(Cell cell);
-        void printColumn(Cell cell, int columnIndex) const;
+        std::vector<std::string> collectColumnData(Cell cell) const;
 
     private:
         static constexpr int headerSize(BTreePageType t) noexcept {

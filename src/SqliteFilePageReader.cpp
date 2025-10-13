@@ -45,12 +45,12 @@ uint16_t SqliteFilePageReader::readPageSize() {
         throw std::runtime_error("Short read while reading page size");
 
     // Combine as big-endian
-    uint16_t pageSize = (static_cast<uint16_t>(bytes[0]) << 8) |
-        static_cast<uint16_t>(bytes[1]);
+    uint32_t pageSize = (static_cast<uint32_t>(bytes[0]) << 8) |
+        static_cast<uint32_t>(bytes[1]);
 
     // SQLite special case: value 1 means 65536
     if (pageSize == 1)
-        pageSize = 65536;
+        pageSize = (uint16_t) 65536;
 
     return pageSize;
 }

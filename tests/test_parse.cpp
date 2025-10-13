@@ -71,9 +71,9 @@ TEST_CASE("Select Count(*) ") {
     }
 }
 
-TEST_CASE("Read Data From a Single Column") {
+TEST_CASE("Read Data From multiple Columns") {
     // Enable logging
-    std::string sql = "select name from oranges";
+    std::string sql = "select name from apples";
     auto node = parseSQL(sql);
     std::ifstream stream("/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/sample.db");
 
@@ -120,7 +120,6 @@ TEST_CASE("Read Data From a Single Column") {
             LOG_INFO(column.name);
         }
         //only one table is supported
-        REQUIRE(select->fromTable->tableName == "oranges");
         auto it = tableNames.find(select->fromTable->tableName);
         REQUIRE(it != tableNames.end());
         LOG_INFO("Create SQL " << it->second);
@@ -134,26 +133,30 @@ TEST_CASE("Read Data From a Single Column") {
             for (int i = 0; i < createTable.columns.size(); i++) {
                 columnMap[createTable.columns[i]->name] = {i, createTable.columns[i]};
             }
-            REQUIRE(createTable.tableName == "oranges");
         }
-        int colOrder = columnMap[select->fromTable->columns[0].name].first;
-
-        //print rootpage for table
+        std::vector<int> cols;
+        for (auto col : select->fromTable->columns) {
+            cols.emplace_back(columnMap[col.name].first);
+        }
         LOG_INFO("Root Page " << rootPages[select->fromTable->tableName]);
-        REQUIRE(rootPages[select->fromTable->tableName] == 4);
+        REQUIRE(rootPages[select->fromTable->tableName] == 2);
         auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
 
-        LOG_INFO("Col Order :" << colOrder);
+        std::vector<std::vector<std::string>> cellValues;
         for (auto cell : tablePage.cells) {
-            if (isPk(columnMap[select->fromTable->columns[0].name].second->constraints)) {
-                //primary key is always the rowid
-                LOG_INFO("Row Id " << cell.rowId);
-                //REQUIRE((cell.rowId == 1 || cell.rowId == 2 || cell.rowId == 3 || cell.rowId==4|| cell.rowId==5));
-            } else {
-                tablePage.printColumn(cell, colOrder);
-            }
+            std::vector<std::string> currentRow = tablePage.collectColumnData(cell);
+            cellValues.emplace_back(currentRow);
         }
-        //load page by rootpage
+        for (int j = 0; j < cellValues.size(); j++) {
+            for (int i = 0; i < select->fromTable->columns.size(); i++) {
+                int idx = columnMap[select->fromTable->columns[i].name].first;
+                std::cout << cellValues[j][idx];
+                if (i != select->fromTable->columns.size() - 1) {
+                    std::cout << "|";
+                }
+            }
+            std::cout << std::endl;
+        }
     }
 }
 
