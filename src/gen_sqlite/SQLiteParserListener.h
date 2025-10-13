@@ -230,8 +230,17 @@ public:
   virtual void enterCompound_select_stmt(SQLiteParser::Compound_select_stmtContext *ctx) = 0;
   virtual void exitCompound_select_stmt(SQLiteParser::Compound_select_stmtContext *ctx) = 0;
 
-  virtual void enterTable_or_subquery(SQLiteParser::Table_or_subqueryContext *ctx) = 0;
-  virtual void exitTable_or_subquery(SQLiteParser::Table_or_subqueryContext *ctx) = 0;
+  virtual void enterTableAliasIndex(SQLiteParser::TableAliasIndexContext *ctx) = 0;
+  virtual void exitTableAliasIndex(SQLiteParser::TableAliasIndexContext *ctx) = 0;
+
+  virtual void enterTableFunction(SQLiteParser::TableFunctionContext *ctx) = 0;
+  virtual void exitTableFunction(SQLiteParser::TableFunctionContext *ctx) = 0;
+
+  virtual void enterTableOrJoin(SQLiteParser::TableOrJoinContext *ctx) = 0;
+  virtual void exitTableOrJoin(SQLiteParser::TableOrJoinContext *ctx) = 0;
+
+  virtual void enterSubquery(SQLiteParser::SubqueryContext *ctx) = 0;
+  virtual void exitSubquery(SQLiteParser::SubqueryContext *ctx) = 0;
 
   virtual void enterResult_column(SQLiteParser::Result_columnContext *ctx) = 0;
   virtual void exitResult_column(SQLiteParser::Result_columnContext *ctx) = 0;

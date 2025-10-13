@@ -13,16 +13,16 @@ enum class ConstraintType {
     COLUMN_CONSTRAINT
 };
 
-class Constraint {
+class   Constraint {
 public:
     Constraint(ConstraintType type): constraintType(type) {
     }
 
     ConstraintType constraintType;
+    bool primary;
+    bool autoIncrement;
+    bool unique;
     std::string name;
-
-
-
 };
 
 

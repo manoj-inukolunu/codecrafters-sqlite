@@ -163,7 +163,13 @@ public:
 
     virtual std::any visitCompound_select_stmt(SQLiteParser::Compound_select_stmtContext *context) = 0;
 
-    virtual std::any visitTable_or_subquery(SQLiteParser::Table_or_subqueryContext *context) = 0;
+    virtual std::any visitTableAliasIndex(SQLiteParser::TableAliasIndexContext *context) = 0;
+
+    virtual std::any visitTableFunction(SQLiteParser::TableFunctionContext *context) = 0;
+
+    virtual std::any visitTableOrJoin(SQLiteParser::TableOrJoinContext *context) = 0;
+
+    virtual std::any visitSubquery(SQLiteParser::SubqueryContext *context) = 0;
 
     virtual std::any visitResult_column(SQLiteParser::Result_columnContext *context) = 0;
 

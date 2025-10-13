@@ -7,12 +7,13 @@
 
 
 #include <cstdint>
+#include <format>
 #include <fstream>
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
-
 
 
 typedef long varint;
@@ -36,31 +37,37 @@ enum DataType {
 static const DataType dataTypeFromString(std::string s) {
     // Convert to upper case for case-insensitive match
     std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c){ return std::toupper(c); });
+                   [](unsigned char c) {
+                       return std::toupper(c);
+                   });
 
-    if (s == "INT" || s == "INTEGER") return DataType::INT;
-    if (s == "REAL" || s == "FLOAT" || s == "DOUBLE") return DataType::REAL;
-    if (s == "TEXT" || s == "CHAR" || s == "VARCHAR") return DataType::TEXT;
-    if (s == "BLOB") return DataType::BLOB;
-    if (s == "NULL") return DataType::NULL_TYPE;
+    if (s == "INT" || s == "INTEGER")
+        return DataType::INT;
+    if (s == "REAL" || s == "FLOAT" || s == "DOUBLE")
+        return DataType::REAL;
+    if (s == "TEXT" || s == "CHAR" || s == "VARCHAR")
+        return DataType::TEXT;
+    if (s == "BLOB")
+        return DataType::BLOB;
+    if (s == "NULL")
+        return DataType::NULL_TYPE;
 
     throw std::invalid_argument("Unknown data type: " + s);
 }
 
 
-
-static const char *dataTypeStr(DataType type) {
+static const char* dataTypeStr(DataType type) {
     switch (type) {
-        case INT:
-            return "INT";
-        case REAL:
-            return "REAL";
-        case TEXT:
-            return "TEXT";
-        case BLOB:
-            return "BLOB";
-        case NULL_TYPE:
-            return "NULL_TYPE";
+    case INT:
+        return "INT";
+    case REAL:
+        return "REAL";
+    case TEXT:
+        return "TEXT";
+    case BLOB:
+        return "BLOB";
+    case NULL_TYPE:
+        return "NULL_TYPE";
     }
     throw new std::invalid_argument("Invalid data type");
 }
@@ -113,14 +120,14 @@ inline uint8_t numBits(varint serialType) {
     return array[serialType];
 }
 
-int read2Bytes(FileOffset offset, std::ifstream &dbFile);
+int read2Bytes(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page);
 
-int read1Byte(FileOffset offset, std::ifstream &dbFile);
+int read1Byte(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page);
 
 uint16_t swap(uint16_t x);
 
 bool little_endian();
 
-std::pair<uint64_t, FileOffset> readVarInt(FileOffset offset, std::ifstream &dbFile);
+std::pair<uint64_t, FileOffset> readVarInt(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page);
 
 #endif //SQLITE_STARTER_CPP_SQLITEUTILS_H

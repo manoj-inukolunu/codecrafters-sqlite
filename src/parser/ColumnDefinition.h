@@ -18,7 +18,7 @@ public :
     std::string name;
     //TODO: In the parser and the grammar make this not optional later.
     DataType type;
-    std::vector<Constraint> constraints;
+    std::vector<std::shared_ptr<Constraint>> constraints;
     // No Default value support now
 };
 

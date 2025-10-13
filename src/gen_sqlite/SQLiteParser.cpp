@@ -10607,111 +10607,227 @@ SQLiteParser::Table_or_subqueryContext::Table_or_subqueryContext(ParserRuleConte
   : ParserRuleContext(parent, invokingState) {
 }
 
-SQLiteParser::Table_nameContext* SQLiteParser::Table_or_subqueryContext::table_name() {
-  return getRuleContext<SQLiteParser::Table_nameContext>(0);
-}
-
-SQLiteParser::Schema_nameContext* SQLiteParser::Table_or_subqueryContext::schema_name() {
-  return getRuleContext<SQLiteParser::Schema_nameContext>(0);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::DOT() {
-  return getToken(SQLiteParser::DOT, 0);
-}
-
-SQLiteParser::Table_aliasContext* SQLiteParser::Table_or_subqueryContext::table_alias() {
-  return getRuleContext<SQLiteParser::Table_aliasContext>(0);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::INDEXED_() {
-  return getToken(SQLiteParser::INDEXED_, 0);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::BY_() {
-  return getToken(SQLiteParser::BY_, 0);
-}
-
-SQLiteParser::Index_nameContext* SQLiteParser::Table_or_subqueryContext::index_name() {
-  return getRuleContext<SQLiteParser::Index_nameContext>(0);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::NOT_() {
-  return getToken(SQLiteParser::NOT_, 0);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::AS_() {
-  return getToken(SQLiteParser::AS_, 0);
-}
-
-SQLiteParser::Table_function_nameContext* SQLiteParser::Table_or_subqueryContext::table_function_name() {
-  return getRuleContext<SQLiteParser::Table_function_nameContext>(0);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::OPEN_PAR() {
-  return getToken(SQLiteParser::OPEN_PAR, 0);
-}
-
-std::vector<SQLiteParser::ExprContext *> SQLiteParser::Table_or_subqueryContext::expr() {
-  return getRuleContexts<SQLiteParser::ExprContext>();
-}
-
-SQLiteParser::ExprContext* SQLiteParser::Table_or_subqueryContext::expr(size_t i) {
-  return getRuleContext<SQLiteParser::ExprContext>(i);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::CLOSE_PAR() {
-  return getToken(SQLiteParser::CLOSE_PAR, 0);
-}
-
-std::vector<tree::TerminalNode *> SQLiteParser::Table_or_subqueryContext::COMMA() {
-  return getTokens(SQLiteParser::COMMA);
-}
-
-tree::TerminalNode* SQLiteParser::Table_or_subqueryContext::COMMA(size_t i) {
-  return getToken(SQLiteParser::COMMA, i);
-}
-
-std::vector<SQLiteParser::Table_or_subqueryContext *> SQLiteParser::Table_or_subqueryContext::table_or_subquery() {
-  return getRuleContexts<SQLiteParser::Table_or_subqueryContext>();
-}
-
-SQLiteParser::Table_or_subqueryContext* SQLiteParser::Table_or_subqueryContext::table_or_subquery(size_t i) {
-  return getRuleContext<SQLiteParser::Table_or_subqueryContext>(i);
-}
-
-SQLiteParser::Join_clauseContext* SQLiteParser::Table_or_subqueryContext::join_clause() {
-  return getRuleContext<SQLiteParser::Join_clauseContext>(0);
-}
-
-SQLiteParser::Select_stmtContext* SQLiteParser::Table_or_subqueryContext::select_stmt() {
-  return getRuleContext<SQLiteParser::Select_stmtContext>(0);
-}
-
 
 size_t SQLiteParser::Table_or_subqueryContext::getRuleIndex() const {
   return SQLiteParser::RuleTable_or_subquery;
 }
 
-void SQLiteParser::Table_or_subqueryContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
-  if (parserListener != nullptr)
-    parserListener->enterTable_or_subquery(this);
+void SQLiteParser::Table_or_subqueryContext::copyFrom(Table_or_subqueryContext *ctx) {
+  ParserRuleContext::copyFrom(ctx);
 }
 
-void SQLiteParser::Table_or_subqueryContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
-  if (parserListener != nullptr)
-    parserListener->exitTable_or_subquery(this);
+//----------------- SubqueryContext ------------------------------------------------------------------
+
+tree::TerminalNode* SQLiteParser::SubqueryContext::OPEN_PAR() {
+  return getToken(SQLiteParser::OPEN_PAR, 0);
 }
 
+SQLiteParser::Select_stmtContext* SQLiteParser::SubqueryContext::select_stmt() {
+  return getRuleContext<SQLiteParser::Select_stmtContext>(0);
+}
 
-std::any SQLiteParser::Table_or_subqueryContext::accept(tree::ParseTreeVisitor *visitor) {
+tree::TerminalNode* SQLiteParser::SubqueryContext::CLOSE_PAR() {
+  return getToken(SQLiteParser::CLOSE_PAR, 0);
+}
+
+SQLiteParser::Table_aliasContext* SQLiteParser::SubqueryContext::table_alias() {
+  return getRuleContext<SQLiteParser::Table_aliasContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::SubqueryContext::AS_() {
+  return getToken(SQLiteParser::AS_, 0);
+}
+
+SQLiteParser::SubqueryContext::SubqueryContext(Table_or_subqueryContext *ctx) { copyFrom(ctx); }
+
+void SQLiteParser::SubqueryContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterSubquery(this);
+}
+void SQLiteParser::SubqueryContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitSubquery(this);
+}
+
+std::any SQLiteParser::SubqueryContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<SQLiteParserVisitor*>(visitor))
-    return parserVisitor->visitTable_or_subquery(this);
+    return parserVisitor->visitSubquery(this);
   else
     return visitor->visitChildren(this);
 }
+//----------------- TableFunctionContext ------------------------------------------------------------------
 
+SQLiteParser::Table_function_nameContext* SQLiteParser::TableFunctionContext::table_function_name() {
+  return getRuleContext<SQLiteParser::Table_function_nameContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::TableFunctionContext::OPEN_PAR() {
+  return getToken(SQLiteParser::OPEN_PAR, 0);
+}
+
+std::vector<SQLiteParser::ExprContext *> SQLiteParser::TableFunctionContext::expr() {
+  return getRuleContexts<SQLiteParser::ExprContext>();
+}
+
+SQLiteParser::ExprContext* SQLiteParser::TableFunctionContext::expr(size_t i) {
+  return getRuleContext<SQLiteParser::ExprContext>(i);
+}
+
+tree::TerminalNode* SQLiteParser::TableFunctionContext::CLOSE_PAR() {
+  return getToken(SQLiteParser::CLOSE_PAR, 0);
+}
+
+SQLiteParser::Schema_nameContext* SQLiteParser::TableFunctionContext::schema_name() {
+  return getRuleContext<SQLiteParser::Schema_nameContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::TableFunctionContext::DOT() {
+  return getToken(SQLiteParser::DOT, 0);
+}
+
+std::vector<tree::TerminalNode *> SQLiteParser::TableFunctionContext::COMMA() {
+  return getTokens(SQLiteParser::COMMA);
+}
+
+tree::TerminalNode* SQLiteParser::TableFunctionContext::COMMA(size_t i) {
+  return getToken(SQLiteParser::COMMA, i);
+}
+
+SQLiteParser::Table_aliasContext* SQLiteParser::TableFunctionContext::table_alias() {
+  return getRuleContext<SQLiteParser::Table_aliasContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::TableFunctionContext::AS_() {
+  return getToken(SQLiteParser::AS_, 0);
+}
+
+SQLiteParser::TableFunctionContext::TableFunctionContext(Table_or_subqueryContext *ctx) { copyFrom(ctx); }
+
+void SQLiteParser::TableFunctionContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterTableFunction(this);
+}
+void SQLiteParser::TableFunctionContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitTableFunction(this);
+}
+
+std::any SQLiteParser::TableFunctionContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<SQLiteParserVisitor*>(visitor))
+    return parserVisitor->visitTableFunction(this);
+  else
+    return visitor->visitChildren(this);
+}
+//----------------- TableAliasIndexContext ------------------------------------------------------------------
+
+SQLiteParser::Table_nameContext* SQLiteParser::TableAliasIndexContext::table_name() {
+  return getRuleContext<SQLiteParser::Table_nameContext>(0);
+}
+
+SQLiteParser::Schema_nameContext* SQLiteParser::TableAliasIndexContext::schema_name() {
+  return getRuleContext<SQLiteParser::Schema_nameContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::TableAliasIndexContext::DOT() {
+  return getToken(SQLiteParser::DOT, 0);
+}
+
+SQLiteParser::Table_aliasContext* SQLiteParser::TableAliasIndexContext::table_alias() {
+  return getRuleContext<SQLiteParser::Table_aliasContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::TableAliasIndexContext::INDEXED_() {
+  return getToken(SQLiteParser::INDEXED_, 0);
+}
+
+tree::TerminalNode* SQLiteParser::TableAliasIndexContext::BY_() {
+  return getToken(SQLiteParser::BY_, 0);
+}
+
+SQLiteParser::Index_nameContext* SQLiteParser::TableAliasIndexContext::index_name() {
+  return getRuleContext<SQLiteParser::Index_nameContext>(0);
+}
+
+tree::TerminalNode* SQLiteParser::TableAliasIndexContext::NOT_() {
+  return getToken(SQLiteParser::NOT_, 0);
+}
+
+tree::TerminalNode* SQLiteParser::TableAliasIndexContext::AS_() {
+  return getToken(SQLiteParser::AS_, 0);
+}
+
+SQLiteParser::TableAliasIndexContext::TableAliasIndexContext(Table_or_subqueryContext *ctx) { copyFrom(ctx); }
+
+void SQLiteParser::TableAliasIndexContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterTableAliasIndex(this);
+}
+void SQLiteParser::TableAliasIndexContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitTableAliasIndex(this);
+}
+
+std::any SQLiteParser::TableAliasIndexContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<SQLiteParserVisitor*>(visitor))
+    return parserVisitor->visitTableAliasIndex(this);
+  else
+    return visitor->visitChildren(this);
+}
+//----------------- TableOrJoinContext ------------------------------------------------------------------
+
+tree::TerminalNode* SQLiteParser::TableOrJoinContext::OPEN_PAR() {
+  return getToken(SQLiteParser::OPEN_PAR, 0);
+}
+
+tree::TerminalNode* SQLiteParser::TableOrJoinContext::CLOSE_PAR() {
+  return getToken(SQLiteParser::CLOSE_PAR, 0);
+}
+
+std::vector<SQLiteParser::Table_or_subqueryContext *> SQLiteParser::TableOrJoinContext::table_or_subquery() {
+  return getRuleContexts<SQLiteParser::Table_or_subqueryContext>();
+}
+
+SQLiteParser::Table_or_subqueryContext* SQLiteParser::TableOrJoinContext::table_or_subquery(size_t i) {
+  return getRuleContext<SQLiteParser::Table_or_subqueryContext>(i);
+}
+
+SQLiteParser::Join_clauseContext* SQLiteParser::TableOrJoinContext::join_clause() {
+  return getRuleContext<SQLiteParser::Join_clauseContext>(0);
+}
+
+std::vector<tree::TerminalNode *> SQLiteParser::TableOrJoinContext::COMMA() {
+  return getTokens(SQLiteParser::COMMA);
+}
+
+tree::TerminalNode* SQLiteParser::TableOrJoinContext::COMMA(size_t i) {
+  return getToken(SQLiteParser::COMMA, i);
+}
+
+SQLiteParser::TableOrJoinContext::TableOrJoinContext(Table_or_subqueryContext *ctx) { copyFrom(ctx); }
+
+void SQLiteParser::TableOrJoinContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterTableOrJoin(this);
+}
+void SQLiteParser::TableOrJoinContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<SQLiteParserListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitTableOrJoin(this);
+}
+
+std::any SQLiteParser::TableOrJoinContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<SQLiteParserVisitor*>(visitor))
+    return parserVisitor->visitTableOrJoin(this);
+  else
+    return visitor->visitChildren(this);
+}
 SQLiteParser::Table_or_subqueryContext* SQLiteParser::table_or_subquery() {
   Table_or_subqueryContext *_localctx = _tracker.createInstance<Table_or_subqueryContext>(_ctx, getState());
   enterRule(_localctx, 98, SQLiteParser::RuleTable_or_subquery);
@@ -10729,6 +10845,7 @@ SQLiteParser::Table_or_subqueryContext* SQLiteParser::table_or_subquery() {
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 205, _ctx)) {
     case 1: {
+      _localctx = _tracker.createInstance<SQLiteParser::TableAliasIndexContext>(_localctx);
       enterOuterAlt(_localctx, 1);
       setState(1389);
       _errHandler->sync(this);
@@ -10847,6 +10964,7 @@ SQLiteParser::Table_or_subqueryContext* SQLiteParser::table_or_subquery() {
     }
 
     case 2: {
+      _localctx = _tracker.createInstance<SQLiteParser::TableFunctionContext>(_localctx);
       enterOuterAlt(_localctx, 2);
       setState(1408);
       _errHandler->sync(this);
@@ -10913,6 +11031,7 @@ SQLiteParser::Table_or_subqueryContext* SQLiteParser::table_or_subquery() {
     }
 
     case 3: {
+      _localctx = _tracker.createInstance<SQLiteParser::TableOrJoinContext>(_localctx);
       enterOuterAlt(_localctx, 3);
       setState(1427);
       match(SQLiteParser::OPEN_PAR);
@@ -10952,6 +11071,7 @@ SQLiteParser::Table_or_subqueryContext* SQLiteParser::table_or_subquery() {
     }
 
     case 4: {
+      _localctx = _tracker.createInstance<SQLiteParser::SubqueryContext>(_localctx);
       enterOuterAlt(_localctx, 4);
       setState(1441);
       match(SQLiteParser::OPEN_PAR);

@@ -4,12 +4,14 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "SqliteSchemaPageReader.h"
+#include "SqliteFilePageReader.h"
 
 #include "antlr4-runtime.h"
+#include "DebugUtils.h"
 #include "gen_sqlite/SQLiteLexer.h"
 #include "gen_sqlite/SQLiteParser.h"
-#include "SQLitePrinter.hpp"
+#include "SQLiteAstBuilder.hpp"
+#include "btree/SqlitePage.h"
 
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
 static const int CELL_OFFSET = 3;
@@ -19,6 +21,14 @@ static const int PAGE_SIZE_OFFSET = 16;
 enum Command {
     DBINFO, TABLES, INVALID
 };
+
+btree::SqlitePage loadPage(std::ifstream& stream, int pageNum, int pageSize) {
+    stream.seekg((pageNum - 1) * pageSize, std::ios::beg);
+    auto buffer = std::make_unique<uint8_t[]>(pageSize);
+    stream.read(reinterpret_cast<char*>(buffer.get()), pageSize);
+
+    return btree::SqlitePage(pageSize, pageNum, std::move(buffer));
+}
 
 
 int read2Bytes(std::ifstream& file, int offset) {
@@ -57,17 +67,39 @@ int numCellsInFirstPage(const std::string& file_location) {
     return val;
 }
 
+std::any parseSQL(const std::string& sql) {
+    antlr4::ANTLRInputStream input(sql);
+    SQLiteLexer lexer(&input);
+    antlr4::CommonTokenStream tokens(&lexer);
+    SQLiteParser parser(&tokens);
+    auto* tree = parser.parse(); // top-level rule for this grammar
+    SqliteAstBuilder v;
+    return v.visit(tree);
+}
 
-int _main(int args, char** argv) {
-    std::cout << argv[1] << std::endl;
-    std::string location = argv[1] + std::string("/sample.db");
-    int pageSize = file_reader(location);
-    std::ifstream dbFile(location, std::ios::binary);
-    SqliteSchemaPageReader reader(0, pageSize, dbFile);
+bool isPk(std::vector<std::shared_ptr<Constraint>> constraints) {
+    for (const auto& constraint : constraints) {
+        if (constraint->constraintType == ConstraintType::COLUMN_CONSTRAINT && constraint->autoIncrement == true) {
+            return true;
+        }
+    }
+    return false;
+}
 
-    std::cout << reader.cellContentAreaStart << std::endl;
+uint16_t readBigEndian16(std::ifstream& file, std::streampos offset) {
+    uint8_t bytes[2];
+    file.seekg(offset, std::ios::beg);
+    file.read(reinterpret_cast<char*>(bytes), 2);
+    return (static_cast<uint16_t>(bytes[0]) << 8) |
+        (static_cast<uint16_t>(bytes[1]));
+}
 
-    return 0;
+btree::SqlitePage schemaPage(std::ifstream& stream) {
+    uint16_t pageSize = readBigEndian16(stream, 16);
+    if (pageSize == 1)
+        pageSize = 65536; // SQLite quirk: 1 means 65536
+
+    return loadPage(stream, 1, pageSize);
 }
 
 int main(int argc, char* argv[]) {
@@ -93,6 +125,31 @@ int main(int argc, char* argv[]) {
 
     Command c = commandMap.count(command) ? commandMap[command] : INVALID;
 
+    std::ifstream stream(database_file_path);
+    auto firstPage = schemaPage(stream);
+    std::map<std::string, std::string> tableNames;
+    std::map<std::string, int> rootPages;
+    for (auto cell : firstPage.cells) {
+        std::tuple createSqlTuple = cell.dataFormat[4];
+        int offset = std::get<2>(createSqlTuple);
+        std::string createSql = std::string(reinterpret_cast<char*>(firstPage.data.get()) + offset, std::get<1>(createSqlTuple));
+
+        std::tuple tableNameTuple = cell.dataFormat[1];
+        offset = std::get<2>(tableNameTuple);
+        std::string tableName = std::string(reinterpret_cast<char*>(firstPage.data.get()) + offset, std::get<1>(tableNameTuple));
+        if (!tableName.starts_with("sqlite")) {
+            tableNames[tableName] = createSql;
+        }
+
+        std::tuple rootPageTuple = cell.dataFormat[3];
+        offset = std::get<2>(rootPageTuple);
+        uint64_t value = 0;
+        for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
+            value = (value << 8) | static_cast<uint64_t>(firstPage.data.get()[offset + i]);
+        }
+        rootPages[tableName] = value;
+    }
+
     switch (c) {
     case DBINFO: {
         std::ifstream database_file(database_file_path, std::ios::binary);
@@ -107,53 +164,64 @@ int main(int argc, char* argv[]) {
         break;
     }
     case TABLES: {
-        int pageSize = file_reader(database_file_path);
-        std::ifstream dbFile(database_file_path, std::ios::binary);
-        SqliteSchemaPageReader reader(1, pageSize, dbFile);
-        reader.printTableNames();
+        for (auto table : tableNames) {
+            std::cout << table.first << std::endl;
+        }
         break;
     }
     default:
-        //            std::string query = command;
-        antlr4::ANTLRInputStream input(command);
-        SQLiteLexer lexer(&input);
-        antlr4::CommonTokenStream tokens(&lexer);
-        SQLiteParser parser(&tokens);
-
-        auto* tree = parser.parse(); // top-level rule for this grammar
-
-        SqliteVisitor v;
-        v.visit(tree);
-
-        std::string tableName = v.tables[0];
-        std::cout << "Found Table " << tableName << std::endl;
-
-        int pageSize = file_reader(database_file_path);
-        std::ifstream dbFile(database_file_path, std::ios::binary);
-        SqliteSchemaPageReader reader(1, pageSize, dbFile);
-        reader.buildSchemaTableRows();
-
-        auto it = std::find_if(reader.tables.begin(), reader.tables.end(),
-                               [tableName](SqliteSchemaTables x) {
-                                   return x.tableName == tableName;
-                               });
-
-        std::cout << "Table " << tableName << " has create SQL " << it->sql << std::endl;
+        std::string sql = command;
+        auto node = parseSQL(sql);
 
 
-        antlr4::ANTLRInputStream sql(it->sql);
-        SQLiteLexer lex(&sql);
-        antlr4::CommonTokenStream tok(&lex);
-        SQLiteParser par(&tok);
+        //print table names
+        for (const auto& [name, sql] : tableNames) {
+            LOG_INFO("Table Name: " << name << " SQL: " << sql);
+        }
 
-        auto* tr = par.parse(); // top-level rule for this grammar
+        if (node.type() == typeid(std::shared_ptr<SelectStatement>)) {
+            auto select = std::any_cast<std::shared_ptr<SelectStatement>>(node);
+            if (select->countQuery) {
+                auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], firstPage.pageSize);
+                std::cout << tablePage.numCellsInPage << std::endl;
+                return 0;
+            }
+            LOG_INFO("Reading Table" << select->fromTable->tableName);
+            LOG_INFO("Column Names ");
+            int idColumnIndex = -1;
+            for (auto column : select->fromTable->columns) {
+                LOG_INFO(column.name);
+            }
+            auto it = tableNames.find(select->fromTable->tableName);
+            LOG_INFO("Create SQL " << it->second);
 
-        SqliteVisitor v1;
-        v1.visit(tr);
+            auto createNode = parseSQL(it->second);
+            std::map<std::string, std::pair<int, std::shared_ptr<ColumnDefinition>>> columnMap;
+            if (createNode.type() == typeid(CreateTableStatement)) {
+                auto createTable = std::any_cast<CreateTableStatement>(createNode);
+                LOG_INFO("Table name: " << createTable.tableName);
 
-        /*std::cout << v1.statementTypeToString() << std::endl;*/
+                for (int i = 0; i < createTable.columns.size(); i++) {
+                    columnMap[createTable.columns[i]->name] = {i, createTable.columns[i]};
+                }
+            }
+            int colOrder = columnMap[select->fromTable->columns[0].name].first;
 
-        SqliteSchemaPageReader rootPageReader(it->rootPage, pageSize, dbFile);
+            //print rootpage for table
+            LOG_INFO("Root Page " << rootPages[select->fromTable->tableName]);
+            auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], firstPage.pageSize);
+
+            LOG_INFO("Col Order :" << colOrder);
+            for (auto cell : tablePage.cells) {
+                if (isPk(columnMap[select->fromTable->columns[0].name].second->constraints)) {
+                    //primary key is always the rowid
+                    LOG_INFO("Row Id " << cell.rowId);
+                    tablePage.printId(cell);
+                } else {
+                    tablePage.printColumn(cell, colOrder);
+                }
+            }
+        }
     }
     return 0;
 }

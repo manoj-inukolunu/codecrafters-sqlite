@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(sqlite-starter-cpp)
 
 set(CMAKE_CXX_STANDARD 23)
-option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_TESTS "Build unit tests" OFF)
 
 # --- ANTLR static runtime (imported) ---
 set(ANTLR4_TAR "${CMAKE_SOURCE_DIR}/ant.tar.gz")
@@ -24,12 +24,7 @@ set(GENERATED
         src/gen_sqlite/SQLiteParser.cpp
         src/gen_sqlite/SQLiteParserBaseVisitor.cpp
         src/gen_sqlite/SQLiteParserVisitor.cpp
-        src/CellParser.cpp
-        src/catalog/CatalogBuilder.cpp
-        src/catalog/CatalogBuilder.h
         src/common/Sqlite.h
-        src/Node.cpp
-        src/Node.h
         src/parser/parser.h
         src/parser/CreateStatement.cpp
         src/parser/SqlStatement.cpp
@@ -48,6 +43,8 @@ set(GENERATED
         src/parser/BaseTableRef.h
         src/parser/ParsedExpression.cpp
         src/parser/ParsedExpression.h
+        src/btree/SqlitePage.cpp
+        src/btree/SqlitePage.h
 )
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
