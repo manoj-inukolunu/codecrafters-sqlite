@@ -164,8 +164,9 @@ int main(int argc, char* argv[]) {
         break;
     }
     case TABLES: {
-        SqliteFilePageReader reader(1, database_file_path);
-        reader.printTableNames();
+        for (auto table : tableNames) {
+            std::cout << table.first << std::endl;
+        }
         break;
     }
     default:
