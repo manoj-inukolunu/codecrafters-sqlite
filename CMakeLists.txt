@@ -65,9 +65,7 @@ target_include_directories(sqlite_grammar PUBLIC gen_sqlite)
 target_link_libraries(sqlite_grammar PUBLIC antlr4_runtime)
 
 # --- Main executable ---
-add_executable(exe ${SOURCE_FILES} ${GENERATED}
-        src/SqlitePage.cpp
-        src/SqlitePage.h)
+add_executable(exe ${SOURCE_FILES} ${GENERATED})
 target_include_directories(exe PRIVATE gen_sqlite)
 target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 

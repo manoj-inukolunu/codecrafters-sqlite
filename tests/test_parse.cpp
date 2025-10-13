@@ -140,8 +140,6 @@ TEST_CASE("Read Data From a Single Column") {
                 tablePage.printColumn(cell, colOrder);
             }
         }
-
-
         //load page by rootpage
     }
 }

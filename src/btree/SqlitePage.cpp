@@ -10,6 +10,7 @@
 namespace btree{
     void SqlitePage::printId(Cell cell) {
         LOG_DEBUG(cell.rowId);
+        std::cout << cell.rowId << std::endl;
     }
 
     void SqlitePage::printColumn(Cell cell, int columnIndex) const {
@@ -23,6 +24,7 @@ namespace btree{
             switch (std::get<0>(format)) {
             case TEXT: {
                 LOG_DEBUG(" Text Content " << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)));
+                std::cout << std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)) << std::endl;
                 break;
             }
             case INT: {
@@ -31,6 +33,7 @@ namespace btree{
                     value = (value << 8) | static_cast<uint64_t>(data[offset + j]);
                 }
                 LOG_DEBUG("Int Content " << value);
+                std::cout << value << std::endl;
                 break;
             }
 
