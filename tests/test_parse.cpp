@@ -48,6 +48,15 @@ btree::SqlitePage loadPage(std::ifstream& stream, int pageNum, int pageSize) {
     return btree::SqlitePage(pageSize, pageNum, std::move(buffer));
 }
 
+bool isPk(const std::vector<Constraint>& constraints) {
+    for (const auto& constraint : constraints) {
+        if (constraint.constraintType == ConstraintType::COLUMN_CONSTRAINT && ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 TEST_CASE("Read Data From a Single Column") {
     std::cerr.rdbuf(std::cerr.rdbuf());
     std::string sql = "select id from oranges";
@@ -103,17 +112,17 @@ TEST_CASE("Read Data From a Single Column") {
         std::cerr << "Create SQL " << it->second << std::endl;
 
         auto createNode = parseSQL(it->second);
-        std::map<std::string, int> columnMap;
+        std::map<std::string, std::pair<int, ColumnDefinition>> columnMap;
         if (createNode.type() == typeid(CreateTableStatement)) {
             auto createTable = std::any_cast<CreateTableStatement>(createNode);
             std::cerr << "Table name: " << createTable.tableName << std::endl;
 
             for (int i = 0; i < createTable.columns.size(); i++) {
-                columnMap[createTable.columns[i].name] = i;
+                columnMap[createTable.columns[i].name] = {i, createTable.columns[i]};
             }
             REQUIRE(createTable.tableName == "oranges");
         }
-        int colOrder = columnMap[select->fromTable->columns[0].name];
+        int colOrder = columnMap[select->fromTable->columns[0].name].first;
 
         //print rootpage for table
         std::cerr << "Root Page " << rootPages[select->fromTable->tableName] << std::endl;
@@ -121,7 +130,13 @@ TEST_CASE("Read Data From a Single Column") {
         auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
 
         for (auto cell : tablePage.cells) {
-            tablePage.printColumn(cell, colOrder);
+            if (isPk(columnMap[select->fromTable->columns[0].name].second.constraints)) {
+                //primary key is always the rowid
+                std::cerr << "Row Id " << cell.rowId << std::endl;
+                REQUIRE(cell.rowId == 1 || cell.rowId == 2 || cell.rowId == 3);
+            } else {
+                tablePage.printColumn(cell, colOrder);
+            }
         }
 
 
