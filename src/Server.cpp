@@ -31,57 +31,6 @@ btree::SqlitePage loadPage(std::ifstream& stream, int pageNum, int pageSize) {
 }
 
 
-std::map<std::string, int> getTableRootPages(const std::string& databasePath) {
-    std::map<std::string, int> rootPages;
-    std::ifstream stream(databasePath, std::ios::binary);
-
-    if (!stream) {
-        throw std::runtime_error("Cannot open database file: " + databasePath);
-    }
-
-    // Read page size (offset 16, 2 bytes, big-endian)
-    uint16_t pageSize = 0;
-    stream.seekg(16);
-    stream.read(reinterpret_cast<char*>(&pageSize), sizeof(pageSize));
-    pageSize = (pageSize >> 8) | (pageSize << 8); // Convert from big-endian
-
-    if (pageSize == 1) {
-        pageSize = 65536; // SQLite quirk
-    }
-
-    // Load page 1 (schema page)
-    auto page = loadPage(stream, 1, pageSize);
-
-    // Process each cell in the schema page
-    for (const auto& cell : page.cells) {
-        // Get table name (2nd column, index 1)
-        auto tableNameTuple = cell.dataFormat[1];
-        int offset = std::get<2>(tableNameTuple);
-        std::string tableName = std::string(
-            reinterpret_cast<char*>(page.data.get()) + offset,
-            std::get<1>(tableNameTuple)
-        );
-
-        // Skip SQLite internal tables
-        if (tableName.starts_with("sqlite_")) {
-            continue;
-        }
-
-        // Get root page (4th column, index 3)
-        auto rootPageTuple = cell.dataFormat[3];
-        offset = std::get<2>(rootPageTuple);
-        int rootPage = 0;
-        for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
-            rootPage = (rootPage << 8) | static_cast<int>(page.data.get()[offset + i]);
-        }
-
-        rootPages[tableName] = rootPage;
-    }
-
-    return rootPages;
-}
-
-
 int read2Bytes(std::ifstream& file, int offset) {
     file.seekg(offset, std::ios::beg);
     size_t n = 2;
@@ -145,6 +94,14 @@ uint16_t readBigEndian16(std::ifstream& file, std::streampos offset) {
         (static_cast<uint16_t>(bytes[1]));
 }
 
+btree::SqlitePage schemaPage(std::ifstream& stream) {
+    uint16_t pageSize = readBigEndian16(stream, 16);
+    if (pageSize == 1)
+        pageSize = 65536; // SQLite quirk: 1 means 65536
+
+    return loadPage(stream, 1, pageSize);
+}
+
 int main(int argc, char* argv[]) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
@@ -168,6 +125,31 @@ int main(int argc, char* argv[]) {
 
     Command c = commandMap.count(command) ? commandMap[command] : INVALID;
 
+    std::ifstream stream(database_file_path);
+    auto firstPage = schemaPage(stream);
+    std::map<std::string, std::string> tableNames;
+    std::map<std::string, int> rootPages;
+    for (auto cell : firstPage.cells) {
+        std::tuple createSqlTuple = cell.dataFormat[4];
+        int offset = std::get<2>(createSqlTuple);
+        std::string createSql = std::string(reinterpret_cast<char*>(firstPage.data.get()) + offset, std::get<1>(createSqlTuple));
+
+        std::tuple tableNameTuple = cell.dataFormat[1];
+        offset = std::get<2>(tableNameTuple);
+        std::string tableName = std::string(reinterpret_cast<char*>(firstPage.data.get()) + offset, std::get<1>(tableNameTuple));
+        if (!tableName.starts_with("sqlite")) {
+            tableNames[tableName] = createSql;
+        }
+
+        std::tuple rootPageTuple = cell.dataFormat[3];
+        offset = std::get<2>(rootPageTuple);
+        uint64_t value = 0;
+        for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
+            value = (value << 8) | static_cast<uint64_t>(firstPage.data.get()[offset + i]);
+        }
+        rootPages[tableName] = value;
+    }
+
     switch (c) {
     case DBINFO: {
         std::ifstream database_file(database_file_path, std::ios::binary);
@@ -189,35 +171,7 @@ int main(int argc, char* argv[]) {
     default:
         std::string sql = command;
         auto node = parseSQL(sql);
-        std::ifstream stream(database_file_path);
 
-        uint16_t pageSize = readBigEndian16(stream, 16);
-        if (pageSize == 1)
-            pageSize = 65536; // SQLite quirk: 1 means 65536
-
-        auto page = loadPage(stream, 1, pageSize);
-        std::map<std::string, std::string> tableNames;
-        std::map<std::string, int> rootPages ;
-        for (auto cell : page.cells) {
-            std::tuple createSqlTuple = cell.dataFormat[4];
-            int offset = std::get<2>(createSqlTuple);
-            std::string createSql = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(createSqlTuple));
-
-            std::tuple tableNameTuple = cell.dataFormat[1];
-            offset = std::get<2>(tableNameTuple);
-            std::string tableName = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(tableNameTuple));
-            if (!tableName.starts_with("sqlite")) {
-                tableNames[tableName] = createSql;
-            }
-
-            std::tuple rootPageTuple = cell.dataFormat[3];
-            offset = std::get<2>(rootPageTuple);
-            uint64_t value = 0;
-            for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
-                value = (value << 8) | static_cast<uint64_t>(page.data.get()[offset + i]);
-            }
-            rootPages[tableName] = value;
-        }
 
         //print table names
         for (const auto& [name, sql] : tableNames) {
@@ -227,7 +181,7 @@ int main(int argc, char* argv[]) {
         if (node.type() == typeid(std::shared_ptr<SelectStatement>)) {
             auto select = std::any_cast<std::shared_ptr<SelectStatement>>(node);
             if (select->countQuery) {
-                auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
+                auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], firstPage.pageSize);
                 std::cout << tablePage.numCellsInPage << std::endl;
                 return 0;
             }
@@ -254,7 +208,7 @@ int main(int argc, char* argv[]) {
 
             //print rootpage for table
             LOG_INFO("Root Page " << rootPages[select->fromTable->tableName]);
-            auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
+            auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], firstPage.pageSize);
 
             LOG_INFO("Col Order :" << colOrder);
             for (auto cell : tablePage.cells) {
