@@ -197,7 +197,27 @@ int main(int argc, char* argv[]) {
 
         auto page = loadPage(stream, 1, pageSize);
         std::map<std::string, std::string> tableNames;
-        std::map<std::string, int> rootPages = getTableRootPages(database_file_path);
+        std::map<std::string, int> rootPages ;
+        for (auto cell : page.cells) {
+            std::tuple createSqlTuple = cell.dataFormat[4];
+            int offset = std::get<2>(createSqlTuple);
+            std::string createSql = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(createSqlTuple));
+
+            std::tuple tableNameTuple = cell.dataFormat[1];
+            offset = std::get<2>(tableNameTuple);
+            std::string tableName = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(tableNameTuple));
+            if (!tableName.starts_with("sqlite")) {
+                tableNames[tableName] = createSql;
+            }
+
+            std::tuple rootPageTuple = cell.dataFormat[3];
+            offset = std::get<2>(rootPageTuple);
+            uint64_t value = 0;
+            for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
+                value = (value << 8) | static_cast<uint64_t>(page.data.get()[offset + i]);
+            }
+            rootPages[tableName] = value;
+        }
 
         //print table names
         for (const auto& [name, sql] : tableNames) {
