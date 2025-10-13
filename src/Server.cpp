@@ -221,27 +221,32 @@ int main(int argc, char* argv[]) {
             }
             for (int cellRow = 0; cellRow < cellRows.size(); cellRow++) {
                 auto row = cellRows[cellRow];
+                bool shouldPrint = false;
+                std::vector<std::string> toPrint;
                 for (int i = 0; i < select->fromTable->columns.size(); i++) {
                     std::string currColName = select->fromTable->columns[i].name;
-                    bool shouldFilter = false;
                     if (select->whereClause.has_value()) {
                         std::string colName = select->whereClause->get()->left->value;
                         std::string colValue = select->whereClause->get()->right->value;
                         int colId = columnMap[currColName].first;
                         std::string currColValue = "'" + row[colId] + "'";
                         if (colName == currColName && currColValue == colValue) {
-                            shouldFilter = true;
+                            shouldPrint = true;
                         }
                     }
-                    if (shouldFilter) {
-                        int colId = columnMap[currColName].first;
-                        std::cout << row[colId];
-                        if (i != select->fromTable->columns.size() - 1) {
-                            std::cout << "|";
-                        }
+                    int colId = columnMap[currColName].first;
+                    toPrint.emplace_back(row[colId]);
+                    if (i != select->fromTable->columns.size() - 1) {
+                        toPrint.emplace_back("|");
                     }
                 }
-                std::cout << std::endl;
+                if (shouldPrint) {
+                    for (auto s : toPrint) {
+                        std::cout << s;
+                    }
+                    std::cout << std::endl;
+                }
+                toPrint.clear();
             }
         }
     }
