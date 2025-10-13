@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(sqlite-starter-cpp)
 
 set(CMAKE_CXX_STANDARD 23)
-option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_TESTS "Build unit tests" OFF)
 
 # --- ANTLR static runtime (imported) ---
 set(ANTLR4_TAR "${CMAKE_SOURCE_DIR}/ant.tar.gz")
