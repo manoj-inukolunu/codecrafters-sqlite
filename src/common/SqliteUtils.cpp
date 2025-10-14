@@ -39,6 +39,21 @@ int read1Byte(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uin
     return page[offset];
 }
 
+//Implement read4Bytes
+uint32_t read4Bytes(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page) {
+    if (!page) {
+        throw std::runtime_error("Page pointer is null");
+    }
+    if (offset + 4 > pageSize) {
+        throw std::out_of_range("read4Bytes: offset out of bounds");
+    }
+    const std::uint8_t* data = page.get();
+    return (static_cast<uint32_t>(data[offset]) << 24) |
+        (static_cast<uint32_t>(data[offset + 1]) << 16) |
+        (static_cast<uint32_t>(data[offset + 2]) << 8) |
+        static_cast<uint32_t>(data[offset + 3]);
+}
+
 
 std::pair<uint64_t, FileOffset> readVarInt(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page) {
     auto readByte = [&](std::size_t& off) -> uint8_t {

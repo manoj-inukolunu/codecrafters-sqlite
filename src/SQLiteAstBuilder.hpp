@@ -12,14 +12,6 @@
 
 class SqliteAstBuilder : public SQLiteParserBaseVisitor {
 public:
-    static inline std::string upper(std::string s) {
-        std::transform(s.begin(), s.end(), s.begin(),
-                       [](unsigned char c) {
-                           return std::toupper(c);
-                       });
-        return s;
-    }
-
     std::vector<std::string> tables;
     bool countStarQuery = false;
     bool selectQuery = false;
@@ -175,7 +167,6 @@ public:
 
 
     std::any visitTableAliasIndex(SQLiteParser::TableAliasIndexContext* context) override {
-        auto tableName = context->table_name()->getText();
 
         auto table = std::make_shared<Table>(context->table_name()->getText());
 
@@ -262,33 +253,6 @@ public:
         return expression;
     }
 
-    /*std::any visitExpr(SQLiteParser::ExprContext* ctx) override {
-        if (auto fn = ctx->function_name()) {
-            const std::string name = upper(fn->getText()); // e.g., "COUNT"
-
-            static const std::unordered_set<std::string> kAggregates = {"COUNT"};
-
-            if (kAggregates.count(name)) {
-                const bool star = (ctx->STAR() != nullptr); // COUNT(*)
-                if (name == "COUNT" && star) {
-                    countStarQuery = true;
-                } else {
-                    throw std::runtime_error("Nothing else is implemented other than count");
-                }
-            }
-        }
-
-        if (ctx->literal_value()) {
-            return visit(ctx->literal_value());
-        }
-
-        if (ctx->column_name()) {
-            return visit(ctx->column_name());
-        }
-
-
-        return visitChildren(ctx);
-    }*/
 
     std::any visitLiteral_value(SQLiteParser::Literal_valueContext* context) override {
         return visitChildren(context);

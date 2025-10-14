@@ -9,11 +9,14 @@
 #include "../common/SqliteUtils.h"
 
 namespace btree{
-    enum class CellType { LEAF_TABLE_CELL };
+    enum class CellType { LEAF_TABLE_CELL, INTERIOR_TABLE_CELL };
 
     struct Cell {
         CellType cellType;
-        std::uint64_t rowId;
+        // The largest rowid that appears in the left child page. Used for navigation only — not an actual record if the cellType is INTERIOR_TABLE_CELL
+        varint rowId;
+        //only for cellType = INTERIOR_TABLE_CELL
+        std::optional<uint32_t> leftChildPageNum;
         std::size_t payloadSize;
         std::vector<std::tuple<DataType, long, long>> dataFormat;
         long cellDataOffset;
@@ -30,7 +33,7 @@ namespace btree{
         }
 
         int pageSize;
-        int pageNum;
+        uint32_t pageNum;
         std::unique_ptr<std::uint8_t[]> data;
         BTreePageType pageType;
         int firstFreeBlockStart;
@@ -39,6 +42,10 @@ namespace btree{
         int fragmentedFreeBytesInCellContentArea;
         std::vector<long> cellContentOffsets;
         std::vector<Cell> cells;
+
+        // rightMostChildPageNum are only available for interior table b tree pages
+        uint32_t rightMostChildPageNum;
+
 
         int cellPointerArrayStart() const {
             return headerSize(pageType);
@@ -54,7 +61,8 @@ namespace btree{
         }
 
         void processCellPointers();
-        void buildCell(int cellNumber);
+        void buildLeafCell(int cellNumber);
+        void buildInteriorCell(int cellNumber);
         void processAllCells();
         void parseHeader();
     };

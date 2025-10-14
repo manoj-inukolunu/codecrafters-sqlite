@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(sqlite-starter-cpp)
 
 set(CMAKE_CXX_STANDARD 23)
-option(BUILD_TESTS "Build unit tests" OFF)
+option(BUILD_TESTS "Build unit tests" ON)
 
 # --- ANTLR static runtime (imported) ---
 set(ANTLR4_TAR "${CMAKE_SOURCE_DIR}/ant.tar.gz")
@@ -65,7 +65,9 @@ target_include_directories(sqlite_grammar PUBLIC gen_sqlite)
 target_link_libraries(sqlite_grammar PUBLIC antlr4_runtime)
 
 # --- Main executable ---
-add_executable(exe ${SOURCE_FILES} ${GENERATED})
+add_executable(exe ${SOURCE_FILES} ${GENERATED}
+        src/TableScan.cpp
+        src/TableScan.h)
 target_include_directories(exe PRIVATE gen_sqlite)
 target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 

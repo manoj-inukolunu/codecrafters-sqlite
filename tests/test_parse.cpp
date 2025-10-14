@@ -10,6 +10,7 @@
 #include "SQLiteLexer.h"
 #include "SQLiteAstBuilder.hpp"
 #include "SqliteFilePageReader.h"
+#include "TableScan.h"
 #include "btree/SqlitePage.h"
 
 
@@ -41,13 +42,6 @@ std::any parseSQL(const std::string& sql) {
     return v.visit(tree);
 }
 
-btree::SqlitePage loadPage(std::ifstream& stream, int pageNum, int pageSize) {
-    stream.seekg((pageNum - 1) * pageSize, std::ios::beg);
-    auto buffer = std::make_unique<uint8_t[]>(pageSize);
-    stream.read(reinterpret_cast<char*>(buffer.get()), pageSize);
-
-    return btree::SqlitePage(pageSize, pageNum, std::move(buffer));
-}
 
 bool isPk(std::vector<std::shared_ptr<Constraint>> constraints) {
     for (const auto& constraint : constraints) {
@@ -56,6 +50,74 @@ bool isPk(std::vector<std::shared_ptr<Constraint>> constraints) {
         }
     }
     return false;
+}
+
+std::unique_ptr<btree::SqlitePage> loadPage(std::ifstream& stream, int pageNum, int pageSize) {
+    stream.seekg((pageNum - 1) * pageSize, std::ios::beg);
+    auto buffer = std::make_unique<uint8_t[]>(pageSize);
+    stream.read(reinterpret_cast<char*>(buffer.get()), pageSize);
+
+    return std::make_unique<btree::SqlitePage>(pageSize, pageNum, std::move(buffer));
+}
+
+void dfs(std::unique_ptr<btree::SqlitePage> page, std::ifstream& stream, std::vector<std::unique_ptr<btree::SqlitePage>>& pages) {
+    if (page->pageType == LEAF_TABLE_PAGE) {
+        pages.emplace_back(std::move(page));
+        LOG_DEBUG("Leaf Page Encountered");
+        return;
+    }
+    LOG_DEBUG("Loading Page " << page->pageNum);
+    for (auto cell : page->cells) {
+        auto left = loadPage(stream, cell.leftChildPageNum.value(), page->pageSize);
+        dfs(std::move(left), stream, pages);
+    }
+
+    auto right = loadPage(stream, page->rightMostChildPageNum, page->pageSize);
+    dfs(std::move(right), stream, pages);
+}
+
+TEST_CASE("Multi Page Read") {
+    auto file = "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/superheroes.db";
+    std::ifstream stream(file);
+    uint16_t pageSize = readBigEndian16(stream, 16);
+    auto page = loadPage(stream, 1, pageSize);
+    std::map<std::string, std::string> tableNames;
+    std::map<std::string, int> rootPages;
+    for (auto cell : page->cells) {
+        std::tuple createSqlTuple = cell.dataFormat[4];
+        int offset = std::get<2>(createSqlTuple);
+        std::string createSql = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(createSqlTuple));
+
+        std::tuple tableNameTuple = cell.dataFormat[1];
+        offset = std::get<2>(tableNameTuple);
+        std::string tableName = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(tableNameTuple));
+        if (!tableName.starts_with("sqlite")) {
+            tableNames[tableName] = createSql;
+        }
+
+        std::tuple rootPageTuple = cell.dataFormat[3];
+        offset = std::get<2>(rootPageTuple);
+        uint64_t value = 0;
+        for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
+            value = (value << 8) | static_cast<uint64_t>(page->data.get()[offset + i]);
+        }
+        rootPages[tableName] = value;
+    }
+
+    std::string sql = "select id,name from superheroes ";
+    auto node = parseSQL(sql);
+    auto select = std::any_cast<std::shared_ptr<SelectStatement>>(node);
+
+    auto createNode = parseSQL(tableNames["superheroes"]);
+    auto createTable = std::any_cast<CreateTableStatement>(createNode);
+    TableScan scan("superheroes", rootPages["superheroes"], stream, pageSize);
+    scan.selectColumns = select->fromTable->columns;
+    //set the scan table columns to the column definitions
+    for (auto& col : createTable.columns) {
+        scan.tableColumns.emplace_back(col);
+    }
+
+    scan.printTable(select->whereClause);
 }
 
 TEST_CASE("Select Count(*) ") {
@@ -84,14 +146,14 @@ TEST_CASE("Read Data From multiple Columns") {
     auto page = loadPage(stream, 1, pageSize);
     std::map<std::string, std::string> tableNames;
     std::map<std::string, int> rootPages;
-    for (auto cell : page.cells) {
+    for (auto cell : page->cells) {
         std::tuple createSqlTuple = cell.dataFormat[4];
         int offset = std::get<2>(createSqlTuple);
-        std::string createSql = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(createSqlTuple));
+        std::string createSql = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(createSqlTuple));
 
         std::tuple tableNameTuple = cell.dataFormat[1];
         offset = std::get<2>(tableNameTuple);
-        std::string tableName = std::string(reinterpret_cast<char*>(page.data.get()) + offset, std::get<1>(tableNameTuple));
+        std::string tableName = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(tableNameTuple));
         if (!tableName.starts_with("sqlite")) {
             tableNames[tableName] = createSql;
         }
@@ -100,7 +162,7 @@ TEST_CASE("Read Data From multiple Columns") {
         offset = std::get<2>(rootPageTuple);
         uint64_t value = 0;
         for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
-            value = (value << 8) | static_cast<uint64_t>(page.data.get()[offset + i]);
+            value = (value << 8) | static_cast<uint64_t>(page->data.get()[offset + i]);
         }
         rootPages[tableName] = value;
     }
@@ -143,8 +205,8 @@ TEST_CASE("Read Data From multiple Columns") {
         auto tablePage = loadPage(stream, rootPages[select->fromTable->tableName], pageSize);
 
         std::vector<std::vector<std::string>> cellValues;
-        for (auto cell : tablePage.cells) {
-            std::vector<std::string> currentRow = tablePage.collectColumnData(cell);
+        for (auto cell : tablePage->cells) {
+            std::vector<std::string> currentRow = tablePage->collectColumnData(cell);
             cellValues.emplace_back(currentRow);
         }
         for (int j = 0; j < cellValues.size(); j++) {
@@ -194,8 +256,6 @@ TEST_CASE("Sqlite Page Test") {
             btree::SqlitePage page(pageSize, pageNum + 1, std::move(buffer));
 
             LOG_INFO(page.numCellsInPage);
-            for (auto cell : page.cells)
-                page.printAllCellData(cell);
         } catch (std::exception& e) {
             LOG_ERROR("Error: " << e.what() << " at page " << i);
         }

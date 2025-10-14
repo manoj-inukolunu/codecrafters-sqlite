@@ -16,6 +16,7 @@ namespace btree{
     std::vector<std::string> SqlitePage::collectColumnData(Cell cell) const {
         size_t offset = cell.cellDataOffset;
         std::vector<std::string> values;
+        values.emplace_back(std::to_string(cell.rowId));
         for (int i = 0; i < cell.dataFormat.size(); i++) {
             auto format = cell.dataFormat[i];
             switch (std::get<0>(format)) {
@@ -35,8 +36,11 @@ namespace btree{
             }
 
             case NULL_TYPE: {
+                //hack i=0 is for the rowid column
+                if (i != 0) {
+                    values.emplace_back("");
+                }
                 LOG_DEBUG("Null Type");
-                values.emplace_back(std::to_string(cell.rowId));
                 break;
             }
 
@@ -59,44 +63,6 @@ namespace btree{
     }
 
 
-    void SqlitePage::printAllCellData(Cell cell) {
-        LOG_DEBUG("Cell Row Id " << cell.rowId << " Payload Size " << cell.payloadSize);
-        size_t offset = cell.cellDataOffset;
-        for (auto format : cell.dataFormat) {
-            switch (std::get<0>(format)) {
-            case TEXT: {
-                LOG_DEBUG(" Text Content "<< std::string(reinterpret_cast<char*>(data.get()) + offset, std::get<1>(format)));
-                break;
-            }
-            case INT: {
-                uint64_t value = 0;
-                for (int i = 0; i < std::get<1>(format); ++i) {
-                    value = (value << 8) | static_cast<uint64_t>(data[offset + i]);
-                }
-                LOG_DEBUG("Int Content "<< value);
-                break;
-            }
-
-            case NULL_TYPE: {
-                break;
-            }
-
-            case BLOB: {
-                break;
-            }
-
-            case REAL: {
-                break;
-            }
-
-            default:
-                throw new std::runtime_error("Type not supported ");
-            }
-            offset += std::get<1>(format);
-        }
-    }
-
-
     void SqlitePage::processCellPointers() {
         auto cellPointerStart = headerSize(pageType);
         if (pageNum == 1) {
@@ -108,57 +74,95 @@ namespace btree{
             LOG_DEBUG("Cell Content Offset " << offset << " - Cell Number " << i);
         }
 
+        if (pageType == INTERIOR_TABLE_PAGE) {
+            rightMostChildPageNum = read4Bytes(pageSize, 8, data);
+        }
+
         LOG_DEBUG("Processed Cell Pointers");
     }
+
+
+    void SqlitePage::buildInteriorCell(int cellNumber) {
+        Cell cell;
+        cell.leftChildPageNum = read4Bytes(pageSize, cellContentOffsets[cellNumber], data);
+        cell.rowId = readVarInt(pageSize, cellContentOffsets[cellNumber] + 4, data).first;
+        cells.emplace_back(cell);
+    }
+
 
     void SqlitePage::processAllCells() {
         for (int i = 0; i < numCellsInPage; i++) {
             LOG_DEBUG("Processing cell " << i << " at offset " << cellContentOffsets[i]);
-            buildCell(i);
+            if (pageType == INTERIOR_TABLE_PAGE) {
+                buildInteriorCell(i);
+            } else if (pageType == LEAF_TABLE_PAGE) {
+                buildLeafCell(i);
+            }
         }
     }
 
 
-    void SqlitePage::buildCell(int cellNumber) {
+    void SqlitePage::buildLeafCell(int cellNumber) {
         Cell cell;
-        auto sizeOfRecord = readVarInt(pageSize, cellContentOffsets[cellNumber], data);
-        cell.payloadSize = sizeOfRecord.first;
 
-        LOG_DEBUG("Record Size " << sizeOfRecord.first);
-        auto rowId = readVarInt(pageSize, sizeOfRecord.second, data);
-        LOG_DEBUG(" Row Id " << rowId.first);
-        cell.rowId = rowId.first;
-        auto recordHeaderSize = readVarInt(pageSize, rowId.second, data);
-        LOG_DEBUG(" Record Header Size " << recordHeaderSize.first);
+        // 1) payload size (varint) at cell start
+        auto payloadV = readVarInt(pageSize, cellContentOffsets[cellNumber], data);
+        const uint64_t payloadSize = payloadV.first;
+        cell.payloadSize = payloadSize;
+        LOG_DEBUG("Record Size " << payloadSize);
 
-        long totalsize = recordHeaderSize.first;
-        long offset = recordHeaderSize.second;
+        // 2) rowid (varint)
+        auto rowIdV = readVarInt(pageSize, payloadV.second, data);
+        cell.rowId = rowIdV.first;
+        LOG_DEBUG(" Row Id " << cell.rowId);
+
+        // 3) header_size (varint). Header starts at rowIdV.second.
+        auto hdrV = readVarInt(pageSize, rowIdV.second, data);
+        const uint64_t headerSize = hdrV.first; // bytes from header_size varint start to end of serial-types list
+        size_t p = hdrV.second; // first serial-type varint
+        const size_t headerStart = static_cast<size_t>(rowIdV.second);
+        const size_t headerEnd = headerStart + static_cast<size_t>(headerSize);
+
+        LOG_DEBUG(" Record Header Size " << headerSize);
+
+        // 4) Read serial types UNTIL headerEnd (track header progress by bytes of varints, not body lengths)
         std::vector<std::tuple<DataType, long, long>> dataFormat;
+        while (p < headerEnd) {
+            auto stV = readVarInt(pageSize, p, data); // stV.first = serial type, stV.second = next varint pos
+            const auto dt = dataType(stV.first);
+            const long len = static_cast<long>(contentSize(stV.first)); // bytes in BODY for this column
+            dataFormat.emplace_back(dt, len, 0L);
+            LOG_DEBUG("  SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
+            p = stV.second;
+        }
 
-        while (totalsize < sizeOfRecord.first) {
-            std::pair<uint64_t, FileOffset> payload = readVarInt(pageSize, offset, data);
-            totalsize += contentSize(payload.first);
-            LOG_DEBUG("  Payload Serial Type " << payload.first << " Content Size " << contentSize(payload.first) << " dataType " << dataTypeStr(dataType(payload.first)));
-            auto tuple = std::make_tuple(dataType(payload.first), contentSize(payload.first), offset);
-            dataFormat.emplace_back(tuple);
-            if (dataType(payload.first) == INT) {
-                LOG_DEBUG(" Content Size in bytes =  " << static_cast<int>(contentSize(payload.first)));
-            }
-            offset = payload.second;
+        // 5) BODY starts exactly at headerEnd
+        cell.cellDataOffset = static_cast<long>(headerEnd);
+
+        // 6) Compute per-column BODY offsets
+        long bodyOffset = static_cast<long>(cell.cellDataOffset);
+        for (auto& t : dataFormat) {
+            std::get<2>(t) = bodyOffset;
+            bodyOffset += std::get<1>(t);
         }
-        cell.dataFormat = dataFormat;
-        cell.cellDataOffset = offset;
-        std::string error = std::format("Total Size {} != Size of Record {}", totalsize, sizeOfRecord.first).c_str();
-        //set the offsets for content
-        std::get<2>(cell.dataFormat[0]) = offset;
-        for (int i = 1; i < cell.dataFormat.size(); i++) {
-            std::get<2>(cell.dataFormat[i]) = std::get<2>(cell.dataFormat[i - 1]) + std::get<1>(cell.dataFormat[i - 1]);
+        cell.dataFormat = std::move(dataFormat);
+
+        // 7) Sanity: header_size + sum(body lengths) == payload_size
+        long sumBody = 0;
+        for (const auto& t : cell.dataFormat)
+            sumBody += std::get<1>(t);
+        const uint64_t check = static_cast<uint64_t>(headerSize) + static_cast<uint64_t>(sumBody);
+
+        if (check != payloadSize) {
+            std::ostringstream oss;
+            oss << "Total Size mismatch: header(" << headerSize << ") + body(" << sumBody
+                << ") = " << check << " != payload(" << payloadSize << ")";
+            throw std::runtime_error(oss.str());
         }
-        if (totalsize != sizeOfRecord.first) {
-            throw std::runtime_error(error);
-        }
-        LOG_DEBUG("All Good - Data Offset " << offset);
-        cells.emplace_back(cell);
+
+        LOG_DEBUG("All Good - Data Offset (body start) " << cell.cellDataOffset);
+
+        cells.emplace_back(std::move(cell));
     }
 
 
@@ -198,8 +202,8 @@ namespace btree{
         this->cellContentAreaStart = read2Bytes(pageSize, pageBegin + (5), data);
         this->fragmentedFreeBytesInCellContentArea = read1Byte(pageSize, pageBegin + (7), data);
 
-        if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
-            throw std::runtime_error(std::format("Interior Table page not supported"));
+        if (pageType == INTERIOR_INDEX_PAGE) {
+            throw std::runtime_error("Interior Index page is not supported");
         }
         processCellPointers();
         processAllCells();

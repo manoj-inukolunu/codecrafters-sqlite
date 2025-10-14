@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <format>
+#include <iostream>
 #include <fstream>
 #include <vector>
 #include <set>
@@ -124,6 +125,8 @@ inline uint8_t numBits(varint serialType) {
 int read2Bytes(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page);
 
 int read1Byte(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page);
+
+uint32_t read4Bytes(std::size_t pageSize, std::size_t offset, std::unique_ptr<std::uint8_t[]>& page);
 
 uint16_t swap(uint16_t x);
 
