@@ -5,6 +5,7 @@
 #ifndef INDEXSCAN_H
 #define INDEXSCAN_H
 #include <string>
+#include <utility>
 
 #include "parser/ColumnDefinition.h"
 
@@ -13,14 +14,17 @@ class IndexScan {
 public:
     int pageSize;
     int rootPageNum;
+    std::string dbPath;
     std::vector<std::shared_ptr<ColumnDefinition>> columns;
 
-    IndexScan(int pageSize, int rootPageNum, std::vector<std::shared_ptr<ColumnDefinition>> columns): columns(columns),
-                                                                                                      rootPageNum(rootPageNum),
-                                                                                                      pageSize(pageSize) {
+    IndexScan(std::string  dbPath, int pageSize, int rootPageNum, std::vector<std::shared_ptr<ColumnDefinition>> columns)
+        : dbPath(std::move(dbPath)),
+          columns(std::move(columns)),
+          rootPageNum(rootPageNum),
+          pageSize(pageSize) {
     }
 
-    long findRowId(std::string keyToSearchFor);
+    std::vector<long> findRowId(std::string keyToSearchFor);
 };
 
 

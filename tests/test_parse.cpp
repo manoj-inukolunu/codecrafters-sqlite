@@ -7,6 +7,7 @@
 
 
 #include "catch_amalgamated.hpp"
+#include "IndexScan.h"
 #include "SQLiteLexer.h"
 #include "SQLiteAstBuilder.hpp"
 #include "SqliteFilePageReader.h"
@@ -78,15 +79,83 @@ void dfs(std::unique_ptr<btree::SqlitePage> page, std::ifstream& stream, std::ve
 
 
 TEST_CASE("INDEX SCAN") {
-    auto file = "/Users/minukolunu/Projects/code-crafters/codecrafters-sqlite-cpp/companies.db";
+    auto file = "/Users/minukolunu/Projects/codecrafters-sqlite-cpp/companies.db";
     std::ifstream stream(file);
 
     uint16_t pageSize = readBigEndian16(stream, 16);
     auto page = loadPage(stream, 1, pageSize);
 
-    auto indexPage = loadPage(stream, 4, pageSize);
+    // Parse the schema page to find index information
+    std::map<std::string, std::string> tableNames;
+    std::map<std::string, int> rootPages;
 
-    std::cout << "Built Index Page" << std::endl;
+    for (auto cell : page->cells) {
+        // Get the type (table or index)
+        std::tuple typeTuple = cell.dataFormat[0];
+        int offset = std::get<2>(typeTuple);
+        std::string type = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(typeTuple));
+
+        // Get the name
+        std::tuple tableNameTuple = cell.dataFormat[1];
+        offset = std::get<2>(tableNameTuple);
+        std::string name = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(tableNameTuple));
+
+        // Get root page
+        std::tuple rootPageTuple = cell.dataFormat[3];
+        offset = std::get<2>(rootPageTuple);
+        uint64_t value = 0;
+        for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
+            value = (value << 8) | static_cast<uint64_t>(page->data.get()[offset + i]);
+        }
+
+        // Get create SQL
+        std::tuple createSqlTuple = cell.dataFormat[4];
+        offset = std::get<2>(createSqlTuple);
+        std::string createSql = std::string(reinterpret_cast<char*>(page->data.get()) + offset, std::get<1>(createSqlTuple));
+
+        if (!name.starts_with("sqlite")) {
+            tableNames[name] = createSql;
+            rootPages[name] = value;
+            LOG_INFO("Found " << type << ": " << name << " at root page " << value);
+        }
+    }
+
+    // Find an index in the schema (look for "CREATE INDEX" entries)
+    std::string indexName;
+    int indexRootPage = -1;
+    for (const auto& [name, sql] : tableNames) {
+        if (sql.find("CREATE INDEX") != std::string::npos) {
+            indexName = name;
+            indexRootPage = rootPages[name];
+            LOG_INFO("Found index: " << indexName << " with SQL: " << sql);
+            break;
+        }
+    }
+
+    if (indexRootPage != -1) {
+        // Create IndexScan instance
+        std::vector<std::shared_ptr<ColumnDefinition>> columns;
+        IndexScan scan(file, pageSize, indexRootPage, columns);
+
+        LOG_INFO("Created IndexScan for index at page " << indexRootPage);
+
+        // Test with a known key (you'll need to adjust this based on your test database)
+        try {
+            std::vector<long> rowIds = scan.findRowId("eritrea");
+            LOG_INFO("Found " << rowIds.size() << " matching row(s)");
+            for (size_t i = 0; i < rowIds.size(); i++) {
+                LOG_INFO("  RowId[" << i << "]: " << rowIds[i]);
+            }
+            REQUIRE(!rowIds.empty());
+            REQUIRE(rowIds[0] > 0);
+        } catch (const std::exception& e) {
+            LOG_INFO("Search failed (expected if key doesn't exist): " << e.what());
+        }
+
+        std::cout << "IndexScan test completed" << std::endl;
+    } else {
+        LOG_INFO("No index found in database - skipping IndexScan test");
+    }
 }
 
 TEST_CASE("Multi Page Read") {

@@ -66,7 +66,7 @@ namespace btree{
         for (int i = 0; i < numCellsInPage; i++) {
             int offset = read2Bytes(pageSize, cellPointerStart + (i * 2), data);
             cellContentOffsets.push_back(offset);
-            LOG_DEBUG("Cell Content Offset " << offset << " - Cell Number " << i);
+            // LOG_DEBUG("Cell Content Offset " << offset << " - Cell Number " << i);
         }
 
         if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
@@ -82,7 +82,7 @@ namespace btree{
         auto payloadSizeV = readVarInt(pageSize, cellContentOffsets[cellNumber] + 4, data);
         cell.payloadSize = static_cast<size_t>(payloadSizeV.first);
 
-        LOG_DEBUG("Interior Index Cell " << cellNumber << " PayloadSize=" << payloadSize);
+        LOG_DEBUG("Interior Index Cell " << cellNumber << " leftChildPageNum=" << cell.leftChildPageNum.value() << " PayloadSize=" << cell.payloadSize);
 
         // 3) Parse key payload: header_size + serial types + column values
         auto hdrV = readVarInt(pageSize, payloadSizeV.second, data);
@@ -100,7 +100,7 @@ namespace btree{
             const auto dt = dataType(stV.first);
             const long len = static_cast<long>(contentSize(stV.first));
             dataFormat.emplace_back(dt, len, 0L);
-            LOG_DEBUG("SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
+            // LOG_DEBUG("SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
             p = stV.second;
         }
 
@@ -132,6 +132,59 @@ namespace btree{
     }
 
     void SqlitePage::buildLeafIndexCell(int cellNumber) {
+        Cell cell;
+
+        // 1) payload size (varint) at cell start
+        auto payloadV = readVarInt(pageSize, cellContentOffsets[cellNumber], data);
+        cell.payloadSize = static_cast<size_t>(payloadV.first);
+
+        LOG_DEBUG("Leaf Index Cell " << cellNumber << " PayloadSize=" << cell.payloadSize);
+
+        // 2) Parse key payload: header_size + serial types + column values
+        auto hdrV = readVarInt(pageSize, payloadV.second, data);
+        const uint64_t headerSize = hdrV.first;
+        const size_t headerStart = payloadV.second;
+        const size_t headerEnd = headerStart + static_cast<size_t>(headerSize);
+
+        LOG_DEBUG("Header size " << headerSize);
+
+        // 3) Parse serial types
+        std::vector<std::tuple<DataType, long, long>> dataFormat;
+        size_t p = hdrV.second;
+        while (p < headerEnd) {
+            auto stV = readVarInt(pageSize, p, data);
+            const auto dt = dataType(stV.first);
+            const long len = static_cast<long>(contentSize(stV.first));
+            dataFormat.emplace_back(dt, len, 0L);
+            LOG_DEBUG("SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
+            p = stV.second;
+        }
+
+        // 4) BODY starts after headerEnd
+        cell.cellDataOffset = static_cast<long>(headerEnd);
+
+        long bodyOffset = static_cast<long>(cell.cellDataOffset);
+        for (auto& t : dataFormat) {
+            std::get<2>(t) = bodyOffset;
+            bodyOffset += std::get<1>(t);
+        }
+
+        cell.dataFormat = std::move(dataFormat);
+
+        // 5) Sanity check
+        long totalBody = 0;
+        for (const auto& t : cell.dataFormat)
+            totalBody += std::get<1>(t);
+        const uint64_t total = static_cast<uint64_t>(headerSize) + static_cast<uint64_t>(totalBody);
+        if (total != cell.payloadSize) {
+            std::ostringstream oss;
+            oss << "Index leaf cell size mismatch: header(" << headerSize << ") + body(" << totalBody
+                << ") != payload(" << cell.payloadSize << ")";
+            throw std::runtime_error(oss.str());
+        }
+
+        LOG_DEBUG("Leaf Index Cell parsed OK, data offset=" << cell.cellDataOffset);
+        cells.emplace_back(std::move(cell));
     }
 
 
@@ -145,7 +198,7 @@ namespace btree{
 
     void SqlitePage::processAllCells() {
         for (int i = 0; i < numCellsInPage; i++) {
-            LOG_DEBUG("Processing cell " << i << " at offset " << cellContentOffsets[i]);
+            // LOG_DEBUG("Processing cell " << i << " at offset " << cellContentOffsets[i]);
             if (pageType == INTERIOR_TABLE_PAGE) {
                 buildInteriorCell(i);
             } else if (pageType == LEAF_TABLE_PAGE) {
@@ -189,7 +242,7 @@ namespace btree{
             const auto dt = dataType(stV.first);
             const long len = static_cast<long>(contentSize(stV.first)); // bytes in BODY for this column
             dataFormat.emplace_back(dt, len, 0L);
-            LOG_DEBUG("  SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
+            // LOG_DEBUG("  SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
             p = stV.second;
         }
 

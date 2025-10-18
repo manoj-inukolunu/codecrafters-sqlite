@@ -12,6 +12,7 @@
 #include "gen_sqlite/SQLiteParser.h"
 #include "SQLiteAstBuilder.hpp"
 #include "TableScan.h"
+#include "IndexScan.h"
 #include "btree/SqlitePage.h"
 
 static const int DATABASE_HEADER_SIZE_BYTES = 100;
@@ -130,17 +131,24 @@ int main(int argc, char* argv[]) {
     auto firstPage = schemaPage(stream);
     std::map<std::string, std::string> tableNames;
     std::map<std::string, int> rootPages;
+    std::map<std::string, std::string> objectTypes; // Track if entry is table or index
+
+    // Map from table name to map of column name to index info
+    std::map<std::string, std::map<std::string, std::pair<std::string, int>>> tableIndexes;
+
     for (auto cell : firstPage->cells) {
+        // Get type (table or index)
+        std::tuple typeTuple = cell.dataFormat[0];
+        int offset = std::get<2>(typeTuple);
+        std::string objType = std::string(reinterpret_cast<char*>(firstPage->data.get()) + offset, std::get<1>(typeTuple));
+
         std::tuple createSqlTuple = cell.dataFormat[4];
-        int offset = std::get<2>(createSqlTuple);
+        offset = std::get<2>(createSqlTuple);
         std::string createSql = std::string(reinterpret_cast<char*>(firstPage->data.get()) + offset, std::get<1>(createSqlTuple));
 
         std::tuple tableNameTuple = cell.dataFormat[1];
         offset = std::get<2>(tableNameTuple);
         std::string tableName = std::string(reinterpret_cast<char*>(firstPage->data.get()) + offset, std::get<1>(tableNameTuple));
-        if (!tableName.starts_with("sqlite")) {
-            tableNames[tableName] = createSql;
-        }
 
         std::tuple rootPageTuple = cell.dataFormat[3];
         offset = std::get<2>(rootPageTuple);
@@ -148,7 +156,36 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < std::get<1>(rootPageTuple); ++i) {
             value = (value << 8) | static_cast<uint64_t>(firstPage->data.get()[offset + i]);
         }
-        rootPages[tableName] = value;
+
+        if (!tableName.starts_with("sqlite")) {
+            tableNames[tableName] = createSql;
+            rootPages[tableName] = value;
+            objectTypes[tableName] = objType;
+
+            // Parse index definitions to map them to tables and columns
+            if (objType == "index" && createSql.find("CREATE INDEX") != std::string::npos) {
+                // Parse: CREATE INDEX idx_name ON table_name (column_name)
+                size_t onPos = createSql.find(" ON ");
+                size_t parenPos = createSql.find("(", onPos);
+                size_t closeParenPos = createSql.find(")", parenPos);
+
+                if (onPos != std::string::npos && parenPos != std::string::npos) {
+                    // Extract table name
+                    std::string indexTableName = createSql.substr(onPos + 4, parenPos - (onPos + 4));
+                    // Trim whitespace
+                    indexTableName.erase(0, indexTableName.find_first_not_of(" \t\n\r"));
+                    indexTableName.erase(indexTableName.find_last_not_of(" \t\n\r") + 1);
+
+                    // Extract column name
+                    std::string columnName = createSql.substr(parenPos + 1, closeParenPos - (parenPos + 1));
+                    columnName.erase(0, columnName.find_first_not_of(" \t\n\r"));
+                    columnName.erase(columnName.find_last_not_of(" \t\n\r") + 1);
+
+                    // Store the index info: indexName -> rootPage
+                    tableIndexes[indexTableName][columnName] = {tableName, value};
+                }
+            }
+        }
     }
 
     switch (c) {
@@ -181,15 +218,65 @@ int main(int argc, char* argv[]) {
                 return 0;
             }
             std::string tableName = select->fromTable->tableName;
-            TableScan scan = TableScan(tableName, rootPages[tableName], stream, firstPage->pageSize);
+
+            // Check if we can use an index for this query
+            bool useIndex = false;
+            std::string indexColumn;
+            std::string indexValue;
+            int indexRootPage = -1;
+
+            if (select->whereClause.has_value()) {
+                // Extract the WHERE clause column and value
+                std::string whereColumn = select->whereClause.value()->left->value;
+                std::string whereValue = select->whereClause.value()->right->value;
+
+                // Remove quotes from value
+                if (!whereValue.empty() && whereValue.front() == '\'' && whereValue.back() == '\'') {
+                    whereValue = whereValue.substr(1, whereValue.length() - 2);
+                }
+
+                // Check if there's an index on this column
+                if (tableIndexes.count(tableName) && tableIndexes[tableName].count(whereColumn)) {
+                    useIndex = true;
+                    indexColumn = whereColumn;
+                    indexValue = whereValue;
+                    indexRootPage = tableIndexes[tableName][whereColumn].second;
+                    LOG_DEBUG("Using index on column '" << indexColumn << "' for value '" << indexValue << "'");
+                }
+            }
+
+            // Create table scan - only load all pages if NOT using index
+            TableScan scan = TableScan(tableName, rootPages[tableName], stream, firstPage->pageSize, !useIndex);
             scan.selectColumns = select->fromTable->columns;
             auto createTable = std::any_cast<CreateTableStatement>(parseSQL(tableNames[tableName]));
-            //set the scan table columns to the column definitions
             for (auto& col : createTable.columns) {
                 scan.tableColumns.emplace_back(col);
             }
 
-            scan.printTable(select->whereClause);
+            if (useIndex) {
+                // Use index scan to find matching rowIds
+                LOG_DEBUG("Performing index scan on index at root page " << indexRootPage);
+                IndexScan indexScan(database_file_path, firstPage->pageSize, indexRootPage, {});
+
+                try {
+                    std::vector<long> matchingRowIds = indexScan.findRowId(indexValue);
+                    LOG_DEBUG("Index scan found " << matchingRowIds.size() << " matching rows");
+
+                    // Fetch and print each matching row by rowId
+                    std::ifstream tableStream(database_file_path);
+                    for (long rowId : matchingRowIds) {
+                        scan.printRowByRowId(rowId, tableStream);
+                    }
+                } catch (const std::exception& e) {
+                    LOG_DEBUG("Index scan failed: " << e.what() << ", falling back to table scan");
+                    // Fall back to table scan if index lookup fails
+                    scan.printTable(select->whereClause);
+                }
+            } else {
+                // No index available, use full table scan
+                LOG_DEBUG("No index available, performing full table scan");
+                scan.printTable(select->whereClause);
+            }
         }
     }
     return 0;

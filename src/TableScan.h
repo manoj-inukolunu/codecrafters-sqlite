@@ -13,11 +13,13 @@
 
 class TableScan {
 public:
-    TableScan(std::string tableName, uint32_t rooPageNum, std::ifstream& stream, int pageSize)
+    TableScan(std::string tableName, uint32_t rooPageNum, std::ifstream& stream, int pageSize, bool loadAllPages = true)
         : pageSize(pageSize),
           tableName(tableName),
           rootPageNum(rooPageNum) {
-        traverseInOrder(loadPage(stream, rootPageNum, pageSize), stream);
+        if (loadAllPages) {
+            traverseInOrder(loadPage(stream, rootPageNum, pageSize), stream);
+        }
     }
 
     std::ifstream stream;
@@ -34,7 +36,12 @@ public:
 
     void printRow(std::optional<std::shared_ptr<ParsedExpression>> whereClause, long rowId) const;
 
+    // Print a single row by its rowId (for index-based lookups)
+    void printRowByRowId(long rowId, std::ifstream& stream) const;
+
 private:
+    // Helper to find a cell by rowId in the B-tree
+    btree::Cell* findCellByRowId(std::ifstream& stream, int pageNum, long targetRowId) const;
     //Traverse all the pages in order , stream is the raw file stream of the sqlite file
     void traverseInOrder(std::unique_ptr<btree::SqlitePage> rootPage, std::ifstream& stream);
     static std::unique_ptr<btree::SqlitePage> loadPage(std::ifstream& stream, int pageNum, int pageSize);
