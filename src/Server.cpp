@@ -165,13 +165,32 @@ int main(int argc, char* argv[]) {
             // Parse index definitions to map them to tables and columns
             if (objType == "index" && createSql.find("CREATE INDEX") != std::string::npos) {
                 // Parse: CREATE INDEX idx_name ON table_name (column_name)
-                size_t onPos = createSql.find(" ON ");
+                // Handle various whitespace patterns (spaces, tabs, newlines)
+                size_t onPos = std::string::npos;
+                // Search for " on " case-insensitively with flexible whitespace
+                for (size_t i = 0; i < createSql.length() - 3; i++) {
+                    if (std::isspace(createSql[i])) {
+                        size_t wordStart = i + 1;
+                        // Skip whitespace
+                        while (wordStart < createSql.length() && std::isspace(createSql[wordStart])) {
+                            wordStart++;
+                        }
+                        if (wordStart + 2 < createSql.length() &&
+                            (createSql[wordStart] == 'o' || createSql[wordStart] == 'O') &&
+                            (createSql[wordStart + 1] == 'n' || createSql[wordStart + 1] == 'N') &&
+                            std::isspace(createSql[wordStart + 2])) {
+                            onPos = wordStart;
+                            break;
+                        }
+                    }
+                }
+
                 size_t parenPos = createSql.find("(", onPos);
                 size_t closeParenPos = createSql.find(")", parenPos);
 
-                if (onPos != std::string::npos && parenPos != std::string::npos) {
-                    // Extract table name
-                    std::string indexTableName = createSql.substr(onPos + 4, parenPos - (onPos + 4));
+                if (onPos != std::string::npos && parenPos != std::string::npos && closeParenPos != std::string::npos) {
+                    // Extract table name (between "on" and "(")
+                    std::string indexTableName = createSql.substr(onPos + 2, parenPos - (onPos + 2));
                     // Trim whitespace
                     indexTableName.erase(0, indexTableName.find_first_not_of(" \t\n\r"));
                     indexTableName.erase(indexTableName.find_last_not_of(" \t\n\r") + 1);
@@ -181,6 +200,7 @@ int main(int argc, char* argv[]) {
                     columnName.erase(0, columnName.find_first_not_of(" \t\n\r"));
                     columnName.erase(columnName.find_last_not_of(" \t\n\r") + 1);
 
+                    LOG_DEBUG("Parsed index: table=" << indexTableName << ", column=" << columnName << ", rootPage=" << value);
                     // Store the index info: indexName -> rootPage
                     tableIndexes[indexTableName][columnName] = {tableName, value};
                 }
