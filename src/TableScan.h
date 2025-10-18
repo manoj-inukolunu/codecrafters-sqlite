@@ -32,13 +32,12 @@ public:
 
     void printTable(std::optional<std::shared_ptr<ParsedExpression>> whereClause) const;
 
+    void printRow(std::optional<std::shared_ptr<ParsedExpression>> whereClause, long rowId) const;
+
 private:
     //Traverse all the pages in order , stream is the raw file stream of the sqlite file
     void traverseInOrder(std::unique_ptr<btree::SqlitePage> rootPage, std::ifstream& stream);
     static std::unique_ptr<btree::SqlitePage> loadPage(std::ifstream& stream, int pageNum, int pageSize);
-
-
-
 };
 
 

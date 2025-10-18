@@ -67,7 +67,9 @@ target_link_libraries(sqlite_grammar PUBLIC antlr4_runtime)
 # --- Main executable ---
 add_executable(exe ${SOURCE_FILES} ${GENERATED}
         src/TableScan.cpp
-        src/TableScan.h)
+        src/TableScan.h
+        src/IndexScan.cpp
+        src/IndexScan.h)
 target_include_directories(exe PRIVATE gen_sqlite)
 target_link_libraries(exe PRIVATE sqlite_grammar antlr4_runtime)
 

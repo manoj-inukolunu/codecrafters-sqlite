@@ -76,6 +76,19 @@ void dfs(std::unique_ptr<btree::SqlitePage> page, std::ifstream& stream, std::ve
     dfs(std::move(right), stream, pages);
 }
 
+
+TEST_CASE("INDEX SCAN") {
+    auto file = "/Users/minukolunu/Projects/code-crafters/codecrafters-sqlite-cpp/companies.db";
+    std::ifstream stream(file);
+
+    uint16_t pageSize = readBigEndian16(stream, 16);
+    auto page = loadPage(stream, 1, pageSize);
+
+    auto indexPage = loadPage(stream, 4, pageSize);
+
+    std::cout << "Built Index Page" << std::endl;
+}
+
 TEST_CASE("Multi Page Read") {
     auto file = "/mnt/c/Users/Manoj/Projects/codecrafters-sqlite-cpp/superheroes.db";
     std::ifstream stream(file);

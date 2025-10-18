@@ -51,8 +51,6 @@ namespace btree{
             return headerSize(pageType);
         }
 
-        void printAllCellData(Cell cell);
-        static void printId(Cell cell);
         std::vector<std::string> collectColumnData(Cell cell) const;
 
     private:
@@ -63,6 +61,8 @@ namespace btree{
         void processCellPointers();
         void buildLeafCell(int cellNumber);
         void buildInteriorCell(int cellNumber);
+        void buildInteriorIndexCell(int cellNumber);
+        void buildLeafIndexCell(int cellNumber);
         void processAllCells();
         void parseHeader();
     };

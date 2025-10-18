@@ -8,11 +8,6 @@
 #include "../DebugUtils.h"
 
 namespace btree{
-    void SqlitePage::printId(Cell cell) {
-        LOG_DEBUG(cell.rowId);
-        std::cout << cell.rowId << std::endl;
-    }
-
     std::vector<std::string> SqlitePage::collectColumnData(Cell cell) const {
         size_t offset = cell.cellDataOffset;
         std::vector<std::string> values;
@@ -74,11 +69,69 @@ namespace btree{
             LOG_DEBUG("Cell Content Offset " << offset << " - Cell Number " << i);
         }
 
-        if (pageType == INTERIOR_TABLE_PAGE) {
+        if (pageType == INTERIOR_TABLE_PAGE || pageType == INTERIOR_INDEX_PAGE) {
             rightMostChildPageNum = read4Bytes(pageSize, 8, data);
         }
 
         LOG_DEBUG("Processed Cell Pointers");
+    }
+
+    void SqlitePage::buildInteriorIndexCell(int cellNumber) {
+        Cell cell;
+        cell.leftChildPageNum = read4Bytes(pageSize, cellContentOffsets[cellNumber], data);
+        auto payloadSizeV = readVarInt(pageSize, cellContentOffsets[cellNumber] + 4, data);
+        cell.payloadSize = static_cast<size_t>(payloadSizeV.first);
+
+        LOG_DEBUG("Interior Index Cell " << cellNumber << " PayloadSize=" << payloadSize);
+
+        // 3) Parse key payload: header_size + serial types + column values
+        auto hdrV = readVarInt(pageSize, payloadSizeV.second, data);
+        const uint64_t headerSize = hdrV.first;
+        const size_t headerStart = payloadSizeV.second;
+        const size_t headerEnd = headerStart + static_cast<size_t>(headerSize);
+
+        LOG_DEBUG("Header size " << headerSize);
+
+        // 4) Parse serial types
+        std::vector<std::tuple<DataType, long, long>> dataFormat;
+        size_t p = hdrV.second;
+        while (p < headerEnd) {
+            auto stV = readVarInt(pageSize, p, data);
+            const auto dt = dataType(stV.first);
+            const long len = static_cast<long>(contentSize(stV.first));
+            dataFormat.emplace_back(dt, len, 0L);
+            LOG_DEBUG("SerialType " << stV.first << " -> len " << len << " type " << dataTypeStr(dt));
+            p = stV.second;
+        }
+
+        // 5) BODY starts after headerEnd
+        cell.cellDataOffset = static_cast<long>(headerEnd);
+
+        long bodyOffset = static_cast<long>(cell.cellDataOffset);
+        for (auto& t : dataFormat) {
+            std::get<2>(t) = bodyOffset;
+            bodyOffset += std::get<1>(t);
+        }
+
+        cell.dataFormat = std::move(dataFormat);
+
+        // 6) Sanity check
+        long totalBody = 0;
+        for (const auto& t : cell.dataFormat)
+            totalBody += std::get<1>(t);
+        const uint64_t total = static_cast<uint64_t>(headerSize) + static_cast<uint64_t>(totalBody);
+        if (total != cell.payloadSize) {
+            std::ostringstream oss;
+            oss << "Index interior cell size mismatch: header(" << headerSize << ") + body(" << totalBody
+                << ") != payload(" << cell.payloadSize << ")";
+            throw std::runtime_error(oss.str());
+        }
+
+        LOG_DEBUG("Interior Index Cell parsed OK, data offset=" << cell.cellDataOffset);
+        cells.emplace_back(std::move(cell));
+    }
+
+    void SqlitePage::buildLeafIndexCell(int cellNumber) {
     }
 
 
@@ -97,6 +150,10 @@ namespace btree{
                 buildInteriorCell(i);
             } else if (pageType == LEAF_TABLE_PAGE) {
                 buildLeafCell(i);
+            } else if (pageType == INTERIOR_INDEX_PAGE) {
+                buildInteriorIndexCell(i);
+            } else if (pageType == LEAF_INDEX_PAGE) {
+                buildLeafIndexCell(i);
             }
         }
     }
@@ -202,9 +259,6 @@ namespace btree{
         this->cellContentAreaStart = read2Bytes(pageSize, pageBegin + (5), data);
         this->fragmentedFreeBytesInCellContentArea = read1Byte(pageSize, pageBegin + (7), data);
 
-        if (pageType == INTERIOR_INDEX_PAGE) {
-            throw std::runtime_error("Interior Index page is not supported");
-        }
         processCellPointers();
         processAllCells();
     }
