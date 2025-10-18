@@ -5,7 +5,7 @@
 #include <sstream>
 
 // Uncomment the following line to enable debug output
-#define ENABLE_DEBUG_LOGGING
+// #define ENABLE_DEBUG_LOGGING
 
 // Log levels
 enum class LogLevel {
